@@ -7,4 +7,9 @@
    #:dual #:differentiable-multivariate #:ad-multivariate)
   (:export #:gradient-descent
            #:gradient-descent-momentum
-           #:nag))
+           #:nag
+
+           #:*descent-rate*
+           #:*epsilon*
+           #:*friction*
+           #:*max-iterations*))
