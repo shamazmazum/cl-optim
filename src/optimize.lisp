@@ -51,15 +51,16 @@
                            (epsilon        *epsilon*))
   "Find minimum of a function using vanilla gradient descent.
 
-FUNCTION takes a list of values of type CL-FORWARD-DIFF:DUAL and
-returns one value of type CL-FORWARD-DIFF:DUAL (see documentation for
-cl-forward-diff). START-POINT must be a list of SINGLE-FLOATs and
-serves as a starting point for the algorithm. DESCENT-RATE controls
-how fast the algorithm follows the gradient of the function.
+@c(function) takes a list of values of type @c(cl-forward-diff:dual)
+and returns one value of type @c(cl-forward-diff:dual) (see
+documentation for cl-forward-diff). @c(start-point) must be a list of
+single floats and serves as a starting point for the
+algorithm. @c(descent-rate) controls how fast the algorithm follows
+the gradient of the function.
 
 The algorithms exists when either a number of iterations exceeds
-MAX-ITERATIONS or absolute value of every gradient component is
-less than EPSILON."
+@c(max-iterations) or absolute value of every gradient component is
+less than @c(epsilon)."
   (declare (optimize (speed 3))
            (type differentiable-multivariate function)
            (type list start-point)
@@ -96,12 +97,13 @@ less than EPSILON."
                                     (friction       *friction*))
   "Find minimum of a function using gradient descent with momentum.
 
-FRICTION controls how fast the momentum decreases on a flat
-surface. For a description of other parameters, see GRADIENT-DESCENT.
+@c(friction) controls how fast the momentum decreases on a flat
+surface. For a description of other parameters, see
+@c(gradient-descent).
 
 The algorithms exists when either a number of iterations exceeds
-MAX-ITERATIONS or absolute value of every gradient component and
-momentum component is less than EPSILON."
+@c(max-iterations) or absolute value of every gradient component and
+momentum component is less than @c(epsilon)."
   (declare (optimize (speed 3))
            (type differentiable-multivariate function)
            (type list start-point)
@@ -144,7 +146,7 @@ momentum component is less than EPSILON."
               (friction       *friction*))
   "Find minimum of a function using Nesterov's advanced gradient
 descent algorithm. For a description of parameters see
-GRADIENT-DESCENT and GRADIENT-DESCENT-MOMENTUM."
+@c(gradient-descent) and @c(gradient-descent-momentum)."
   (declare (optimize (speed 3))
            (type differentiable-multivariate function)
            (type list start-point)

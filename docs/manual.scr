@@ -1,0 +1,157 @@
+@begin[ref=index](section)
+   @title(Manual)
+   CL-OPTIM system provides a collection of algorithms for minimizing real
+   functions of one or many arguments.
+
+   @begin(section)
+      @title(Gradient-based algorithms)
+      These algorithms require the function to be differentiable at almost every
+      point. There is no need to define the derivative of the function you wish
+      to minimize. A special system,
+      @link[uri="https://github.com/shamazmazum/cl-forward-diff"](cl-forward-diff),
+      is capable of automatic differentiation. For example, let's write a
+      function which evaluates a polynomial at point @c(x) given the polynomial
+      coefficients @c(coeffs). For the sake of automatic differentiation we must
+      not use standard mathematical functions from the @c(cl) package. Instead
+      we must use functions from @c(cl-forward-diff) package. If you mix them
+      you will get either runtime error or compile time error (depending on your
+      implementation). You will never get a wrong result, so don't worry about
+      accidentally mixing these functions. To minimize a probability of an error
+      I recommend to define differentiable functions in a separate package which
+      shadows mathematical functions from @c(cl) with ones provided by
+      @c(cl-forward-diff). Our function, @c(polynomial) can look like this:
+      @begin[lang=lisp](code)
+(defpackage polynomial
+  (:use #:cl #:snakes)
+  (:import-from #:cl-forward-diff #:dual)
+  (:import-from #:serapeum #:->)
+  #.(cl-forward-diff:shadowing-import-math)
+  (:export #:polynomial))
+(in-package :polynomial)
+
+(defun gen-reduce (function initial-value generator)
+  (labels ((reduce% (acc)
+             (let ((value (funcall generator)))
+               (if (eq value 'generator-stop) acc
+                   (reduce% (funcall function acc value))))))
+    (reduce% initial-value)))
+
+(-> polynomial (list dual) (values dual &optional))
+(defun polynomial (coeffs x)
+  (declare (type dual x))
+  (gen-reduce
+   #'+ 0
+   (imap (lambda (c n)
+           (* c (expt x n)))
+         (list->generator coeffs)
+         (icount 0))))
+   @end(code)
+   Type declarations are added for clarity, but combining them with declarations
+   like @c((declare (optimize (speed 3)))) can also result in better generated
+   code.
+
+   As you can see, differentiable functions operate not with usual numbers but
+   with values of type @c(dual) (so called dual numbers). You can evaluate some
+   polynomial, let it be @c(f(x) = 1 + 2x + 3x@sup(2)) at the point @c(x) (let
+   @c(x = 2)) along with its first derivative @c(f'(x) = 2 + 6x) like this:
+   @begin[lang=repl](code)
+CL-USER> (polynomial:polynomial '(1 2 3) #d(2.0 1.0))
+#D(17.0 14.0)
+   @end(code)
+   The type @c(dual) is implemented as a structure which has two slots for
+   single float numbers, so all calculations are performed with single
+   precision.
+
+   Now when we have this function, @c(polynomial), we want to find the minimum
+   of our polynomial f(x). We can use the simplest gradient descent algorithm
+   for this purpose. Try the following code in the REPL:
+   @begin[lang=repl](code)
+CL-USER> (cl-optim:gradient-descent
+          (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
+                              #'first)
+          '(10.0))
+(-0.33316675)
+3673
+   @end(code)
+   The first argument of @c(gradient-descent) is a function to be minimized. It
+   takes a list of dual numbers (let its length be @c(n)) and return a dual
+   number. We must compose partially applied @c(polynomial) with @c(first)
+   because the second argument of @c(polynomial) is of type @c(dual), not
+   @c(list). The second argument is a starting point for a search. It is a list
+   of single floats of the same length @c(n). Because our function is convex,
+   just every starting point will do.
+
+   The first returned value is the found minimum and the second is the number of
+   steps required to find that minimum. You can use a better algorithm to reduce
+   the number of steps:
+   @begin[lang=repl](code)
+CL-USER> (cl-optim:nag
+          (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
+                              #'first)
+          '(10.0))
+(-0.33344847)
+139
+   @end(code)
+
+   Just another example of minimizing a function of two variables (Rosenbrock
+   function with parameters @c(a = 2) and @c(b = 100)).
+   @begin[lang=lisp](code)
+(defpackage rosenbrock
+  (:use #:cl)
+  (:import-from #:cl-forward-diff #:dual)
+  #.(cl-forward-diff:shadowing-import-math)
+  (:export #:rosenbrock))
+(in-package :rosenbrock)
+
+(defun rosenbrock (list)
+  (destructuring-bind (x y)
+      list
+    (declare (type dual x y))
+    (+ (expt (- 2 x) 2)
+       (* 100 (expt (- y (expt x 2)) 2)))))
+   @end(code)
+   Evaluate in the REPL:
+   @begin[lang=repl](code)
+CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
+                       :descent-rate   1f-4
+                       :friction       0.99)
+(1.9975977 3.9903917)
+3218
+   @end(code)
+   Here I overrided some default parameters @c(friction) and
+   @c(descent-rate). For more information see @ref[id=api](API) section.
+   @end(section)
+@end(section)
+
+@begin[ref=api](section)
+   @title(API)
+   @u(Algorithms)
+   @cl:with-package[name="cl-optim"](
+      @cl:doc(function gradient-descent)
+      @cl:doc(function gradient-descent-momentum)
+      @cl:doc(function nag)
+   )
+   @u(Parameters)
+      @cl:with-package[name="cl-optim"](
+      @cl:doc(variable *descent-rate*)
+      @cl:doc(variable *epsilon*)
+      @cl:doc(variable *friction*)
+      @cl:doc(variable *max-iterations*)
+   )
+@end(section)
+
+@begin(section)
+   @title(Tips)
+   @begin(list)
+   @item(Do not forgot to use @c(optimize (speed 3)) declaration in functions
+   which may be a bottleneck. Though not as smart as with ordinary math
+   functions, SBCL can produce nice assembly code when optimizing for speed.)
+   @item(You can add @c(:single-float-tran) to @c(*features*) before loading
+   @c(cl-optim) if you use SBCL. This way SBCL will know about mathematical
+   functions from @c(libm) which work with single precision floats, like
+   @c(sinf), @c(cosf), etc.)
+   @item(Remember, that these algorithms are not guarateed to find the
+   @i(global) minimum. Indeed, the minimum they find depends on various
+   parameters: the starting point, the fricton and so on.)
+   @end(list)
+@end(section)
