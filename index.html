@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+  Manual &ndash; cl-optim
+</title>
+    <link rel="stylesheet" href="static/style.css"/>
+    
+  <link rel="stylesheet" href="static/highlight.css"/>
+  <script src="static/highlight.js"></script>
+  <style>
+   /* Highlight the current top-level TOC item, and hide the TOC of all other items */
+
+   .toc a[data-node="index"] {
+       /*color: #AD3108;*/
+   }
+
+   .toc ol {
+       display: none;
+   }
+
+   .toc li a[data-node="index"] {
+       font-weight: bold;
+   }
+
+   .toc li a[data-node="index"] + ol {
+       display: block;
+   }
+
+   .toc li a[data-node="index"] + ol li {
+       margin-left: 10px;
+   }
+  </style>
+
+  </head>
+  <body>
+    
+  <h1 class="doc-title">cl-optim</h1>
+  <article id="article" data-section="index">
+    <aside>
+      <ol class="toc"><li><a href="index.html" data-node="index">Manual</a><ol><li><a href="index.html#gradient-based-algorithms" data-node="gradient-based-algorithms">Gradient-based algorithms</a></li></ol></li><li><a href="api.html" data-node="api">API</a></li><li><a href="tips.html" data-node="tips">Tips</a></li></ol>
+    </aside>
+    <main class="codex-section">
+      <header>
+        <h2 class="section-title">Manual</h2>
+      </header>
+      <div class="content">
+        <p>
+   CL-OPTIM system provides a collection of algorithms for minimizing real
+   functions of one or many arguments.</p><p>   </p><h1 id="gradient-based-algorithms">Gradient-based algorithms</h1><p>
+      These algorithms require the function to be differentiable at almost every
+      point. There is no need to define the derivative of the function you wish
+      to minimize. A special system,
+      <a href="https://github.com/shamazmazum/cl-forward-diff">cl-forward-diff</a>,
+      is capable of automatic differentiation. For example, let's write a
+      function which evaluates a polynomial at point <code>x</code> given the polynomial
+      coefficients <code>coeffs</code>. For the sake of automatic differentiation we must
+      not use standard mathematical functions from the <code>cl</code> package. Instead
+      we must use functions from <code>cl-forward-diff</code> package. If you mix them
+      you will get either runtime error or compile time error (depending on your
+      implementation). You will never get a wrong result, so don't worry about
+      accidentally mixing these functions. To minimize a probability of an error
+      I recommend to define differentiable functions in a separate package which
+      shadows mathematical functions from <code>cl</code> with ones provided by
+      <code>cl-forward-diff</code>. Our function, <code>polynomial</code> can look like this:
+      </p><pre><code class="lisp">(defpackage polynomial
+  (:use #:cl #:snakes)
+  (:import-from #:cl-forward-diff #:dual)
+  (:import-from #:serapeum #:-&gt;)
+  #.(cl-forward-diff:shadowing-import-math)
+  (:export #:polynomial))
+(in-package :polynomial)
+
+(defun gen-reduce (function initial-value generator)
+  (labels ((reduce% (acc)
+             (let ((value (funcall generator)))
+               (if (eq value 'generator-stop) acc
+                   (reduce% (funcall function acc value))))))
+    (reduce% initial-value)))
+
+(-&gt; polynomial (list dual)(values dual &amp;optional))
+(defun polynomial (coeffs x)
+  (declare (type dual x))
+  (gen-reduce
+   #'+ 0
+   (imap (lambda (c n)
+           (* c (expt x n)))
+         (list-&gt;generator coeffs)
+         (icount 0))))
+   </code></pre><p>
+   Type declarations are added for clarity, but combining them with declarations
+   like <code>(declare (optimize (speed 3)))</code> can also result in better generated
+   code.</p><p>   As you can see, differentiable functions operate not with usual numbers but
+   with values of type <code>dual</code>(so called dual numbers). You can evaluate some
+   polynomial, let it be <code>f(x) = 1 + 2x + 3x<sup>2</sup></code> at the point <code>x</code>(let
+   <code>x = 2</code>) along with its first derivative <code>f'(x) = 2 + 6x</code> like this:
+   </p><pre><code class="repl">CL-USER&gt; (polynomial:polynomial '(1 2 3) #d(2.0 1.0))
+#D(17.0 14.0)
+   </code></pre><p>
+   The type <code>dual</code> is implemented as a structure which has two slots for
+   single float numbers, so all calculations are performed with single
+   precision.</p><p>   Now when we have this function, <code>polynomial</code>, we want to find the minimum
+   of our polynomial f(x). We can use the simplest gradient descent algorithm
+   for this purpose. Try the following code in the REPL:
+   </p><pre><code class="repl">CL-USER&gt; (cl-optim:gradient-descent
+          (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
+                              #'first)
+          '(10.0))
+(-0.33316675)
+3673
+   </code></pre><p>
+   The first argument of <code>gradient-descent</code> is a function to be minimized. It
+   takes a list of dual numbers (let its length be <code>n</code>) and return a dual
+   number. We must compose partially applied <code>polynomial</code> with <code>first</code>
+   because the second argument of <code>polynomial</code> is of type <code>dual</code>, not
+   <code>list</code>. The second argument is a starting point for a search. It is a list
+   of single floats of the same length <code>n</code>. Because our function is convex,
+   just every starting point will do.</p><p>   The first returned value is the found minimum and the second is the number of
+   steps required to find that minimum. You can use a better algorithm to reduce
+   the number of steps:
+   </p><pre><code class="repl">CL-USER&gt; (cl-optim:nag
+          (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
+                              #'first)
+          '(10.0))
+(-0.33344847)
+139
+   </code></pre><p>   Just another example of minimizing a function of two variables (Rosenbrock
+   function with parameters <code>a = 2</code> and <code>b = 100</code>).
+   </p><pre><code class="lisp">(defpackage rosenbrock
+  (:use #:cl)
+  (:import-from #:cl-forward-diff #:dual)
+  #.(cl-forward-diff:shadowing-import-math)
+  (:export #:rosenbrock))
+(in-package :rosenbrock)
+
+(defun rosenbrock (list)
+  (destructuring-bind (x y)
+      list
+    (declare (type dual x y))
+    (+ (expt (- 2 x) 2)
+       (* 100 (expt (- y (expt x 2)) 2)))))
+   </code></pre><p>
+   Evaluate in the REPL:
+   </p><pre><code class="repl">CL-USER&gt; (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
+                       :descent-rate   1f-4
+                       :friction       0.99)
+(1.9975977 3.9903917)
+3218
+   </code></pre><p>
+   Here I overrided some default parameters <code>friction</code> and
+   <code>descent-rate</code>. For more information see <a id="api" href="api.html" data-node="api">API</a> section.
+   </p><p>
+</p>
+      </div>
+    </main>
+  </article>
+  <footer>
+    <div class="info">
+      Created with <a href="https://github.com/CommonDoc/codex">Codex</a>.
+    </div>
+  </footer>
+  <script>
+   HighlightLisp.highlight_auto();
+  </script>
+
+  </body>
+</html>
