@@ -8,8 +8,10 @@
   (:export #:gradient-descent
            #:gradient-descent-momentum
            #:nag
+           #:adam
 
            #:*descent-rate*
            #:*epsilon*
            #:*friction*
+           #:*dr-ema-base*
            #:*max-iterations*))

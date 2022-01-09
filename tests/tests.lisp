@@ -27,7 +27,9 @@
             (is (closep x '(0 0))))))
    (list #'gradient-descent
          #'gradient-descent-momentum
-         #'nag)))
+         #'nag
+         (lambda (fn x)
+           (adam fn x :descent-rate 1f-2)))))
 
 (test opt-booth
   (mapcar
@@ -40,19 +42,34 @@
             (is (< iter *max-iterations*))
             (is (closep x '(1 3))))))
    (list #'gradient-descent-momentum
-         #'nag)))
+         #'nag
+         (lambda (fn x)
+           (adam fn x :descent-rate 1f-2)))))
 
 (test opt-rosenbrock
-  (loop repeat 10 do
-       (multiple-value-bind (x iter)
-           (nag #'rosenbrock
-                (list (- (random 4.0) 2.0)
-                      (- (random 4.0) 2.0))
-                :descent-rate 1e-4
-                :epsilon 1e-4
-                :max-iterations 100000)
-         (is (< iter 100000))
-         (is (closep x '(2 4))))))
+  (mapcar
+   (lambda (optimizer)
+     (loop repeat 10 do
+          (multiple-value-bind (x iter)
+              (funcall optimizer
+                       #'rosenbrock
+                       (list (- (random 4.0) 2.0)
+                             (- (random 4.0) 2.0)))
+            (is (< iter 100000))
+            (is (closep x '(2 4))))))
+   (list
+    (lambda (fn x)
+      (nag fn x
+           :descent-rate 1e-4
+           :friction 0.99
+           :epsilon 1e-4
+           :max-iterations 20000))
+    (lambda (fn x)
+      (adam fn x
+            :descent-rate 1e-2
+            :epsilon 1e-4
+            :max-iterations 20000)))))
+
 
 (test opt-hills
   (loop repeat 10 do
