@@ -51,16 +51,29 @@
         
    <u>Algorithms</u>
    
-      <div class="codex-error codex-no-node">No node with name <code>gradient-descent</code>.</div>
-      <div class="codex-error codex-no-node">No node with name <code>gradient-descent-momentum</code>.</div>
-      <div class="codex-error codex-no-node">No node with name <code>nag</code>.</div>
+      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">gradient-descent</code><code class="codex-lambda-list">(function start-point &amp;key (descent-rate *descent-rate*) (max-iterations *max-iterations*) (epsilon *epsilon*))</code><div class="codex-docstring"><p>Find minimum of a function using vanilla gradient descent.<code>function</code> takes a list of values of type <code>cl-forward-diff:dual</code>
+and returns one value of type <code>cl-forward-diff:dual</code>(see
+documentation for cl-forward-diff). <code>start-point</code> must be a list of
+single floats and serves as a starting point for the
+algorithm. <code>descent-rate</code> controls how fast the algorithm follows
+the gradient of the function.</p><p>The algorithms exists when either a number of iterations exceeds
+<code>max-iterations</code> or absolute value of every gradient component is
+less than <code>epsilon</code>.</p></div></div>
+      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">gradient-descent-momentum</code><code class="codex-lambda-list">(function start-point &amp;key (descent-rate *descent-rate*) (max-iterations *max-iterations*) (epsilon *epsilon*) (friction *friction*))</code><div class="codex-docstring"><p>Find minimum of a function using gradient descent with momentum.<code>friction</code> controls how fast the momentum decreases on a flat
+surface. For a description of other parameters, see
+<code>gradient-descent</code>.</p><p>The algorithms exists when either a number of iterations exceeds
+<code>max-iterations</code> or absolute value of every gradient component and
+momentum component is less than <code>epsilon</code>.</p></div></div>
+      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">nag</code><code class="codex-lambda-list">(function start-point &amp;key (descent-rate *descent-rate*) (max-iterations *max-iterations*) (epsilon *epsilon*) (friction *friction*))</code><div class="codex-docstring">Find minimum of a function using Nesterov's advanced gradient
+descent algorithm. For a description of parameters see
+<code>gradient-descent</code> and <code>gradient-descent-momentum</code>.</div></div>
    
    <u>Parameters</u>
       
-      <div class="codex-error codex-no-node">No node with name <code>*descent-rate*</code>.</div>
-      <div class="codex-error codex-no-node">No node with name <code>*epsilon*</code>.</div>
-      <div class="codex-error codex-no-node">No node with name <code>*friction*</code>.</div>
-      <div class="codex-error codex-no-node">No node with name <code>*max-iterations*</code>.</div>
+      <div class="codex-doc-node codex-variable"><code class="codex-name">*descent-rate*</code><div class="codex-docstring">Default descent rate for gradient descent algorithms.</div></div>
+      <div class="codex-doc-node codex-variable"><code class="codex-name">*epsilon*</code><div class="codex-docstring">Exit criterion for gradient descent algorithms.</div></div>
+      <div class="codex-doc-node codex-variable"><code class="codex-name">*friction*</code><div class="codex-docstring">Friction parameter for gradient descent algorithms with momentum.</div></div>
+      <div class="codex-doc-node codex-variable"><code class="codex-name">*max-iterations*</code><div class="codex-docstring">Maximal allowed number of iterations.</div></div>
    
 
       </div>
