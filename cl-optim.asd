@@ -3,6 +3,7 @@
   :version "0.1"
   :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
   :description "Optimization of differentiable functions in CL"
+  :licence "2-clause BSD"
   :serial t
   :pathname "src/"
   :components ((:file "package")
@@ -17,6 +18,7 @@
   :name :cl-optim/tests
   :version "0.1"
   :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
+  :licence "2-clause BSD"
   :pathname "tests/"
   :serial t
   :components ((:file "packages")
