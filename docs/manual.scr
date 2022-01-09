@@ -45,57 +45,58 @@
            (* c (expt x n)))
          (list->generator coeffs)
          (icount 0))))
-   @end(code)
-   Type declarations are added for clarity, but combining them with declarations
-   like @c((declare (optimize (speed 3)))) can also result in better generated
-   code.
+      @end(code)
+      Type declarations are added for clarity, but combining them with
+      declarations like @c((declare (optimize (speed 3)))) can also result in
+      better generated code.
 
-   As you can see, differentiable functions operate not with usual numbers but
-   with values of type @c(dual) (so called dual numbers). You can evaluate some
-   polynomial, let it be @c(f(x) = 1 + 2x + 3x@sup(2)) at the point @c(x) (let
-   @c(x = 2)) along with its first derivative @c(f'(x) = 2 + 6x) like this:
-   @begin[lang=repl](code)
+      As you can see, differentiable functions operate not with usual numbers
+      but with values of type @c(dual) (so called dual numbers). You can
+      evaluate some polynomial, let it be @c(f(x) = 1 + 2x + 3x@sup(2)) at the
+      point @c(x) (let @c(x = 2)) along with its first derivative @c(f'(x) = 2 +
+      6x) like this:
+      @begin[lang=repl](code)
 CL-USER> (polynomial:polynomial '(1 2 3) #d(2.0 1.0))
 #D(17.0 14.0)
-   @end(code)
-   The type @c(dual) is implemented as a structure which has two slots for
-   single float numbers, so all calculations are performed with single
-   precision.
+      @end(code)
+      The type @c(dual) is implemented as a structure which has two slots for
+      single float numbers, so all calculations are performed with single
+      precision.
 
-   Now when we have this function, @c(polynomial), we want to find the minimum
-   of our polynomial f(x). We can use the simplest gradient descent algorithm
-   for this purpose. Try the following code in the REPL:
-   @begin[lang=repl](code)
+      Now when we have this function, @c(polynomial), we want to find the
+      minimum of our polynomial f(x). We can use the simplest gradient descent
+      algorithm for this purpose. Try the following code in the REPL:
+      @begin[lang=repl](code)
 CL-USER> (cl-optim:gradient-descent
           (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
                               #'first)
           '(10.0))
 (-0.33316675)
 3673
-   @end(code)
-   The first argument of @c(gradient-descent) is a function to be minimized. It
-   takes a list of dual numbers (let its length be @c(n)) and return a dual
-   number. We must compose partially applied @c(polynomial) with @c(first)
-   because the second argument of @c(polynomial) is of type @c(dual), not
-   @c(list). The second argument is a starting point for a search. It is a list
-   of single floats of the same length @c(n). Because our function is convex,
-   just every starting point will do.
+      @end(code)
+      The first argument of @c(gradient-descent) is a function to be
+      minimized. It takes a list of dual numbers (let its length be @c(n)) and
+      return a dual number. We must compose partially applied @c(polynomial)
+      with @c(first) because the second argument of @c(polynomial) is of type
+      @c(dual), not @c(list). The second argument is a starting point for a
+      search. It is a list of single floats of the same length @c(n). Because
+      our function is convex, just every starting point will do.
 
-   The first returned value is the found minimum and the second is the number of
-   steps required to find that minimum. You can use a better algorithm to reduce
-   the number of steps:
-   @begin[lang=repl](code)
+      The first returned value is the found minimum and the second is the number
+      of steps required to find that minimum. You can use a better algorithm to
+      reduce the number of steps:
+      @begin[lang=repl](code)
 CL-USER> (cl-optim:nag
           (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
                               #'first)
           '(10.0))
 (-0.33344847)
 139
-   @end(code)
+      @end(code)
 
-   Just another example of minimizing a function of two variables (Rosenbrock
-   function with parameters @c(a = 2) and @c(b = 100)).
-   @begin[lang=lisp](code)
+      Just another example of minimizing a function of two variables (Rosenbrock
+      function with parameters @c(a = 2) and @c(b = 100)).
+      @begin[lang=lisp](code)
 (defpackage rosenbrock
   (:use #:cl)
   (:import-from #:cl-forward-diff #:dual)
@@ -109,17 +110,17 @@ CL-USER> (cl-optim:nag
     (declare (type dual x y))
     (+ (expt (- 2 x) 2)
        (* 100 (expt (- y (expt x 2)) 2)))))
-   @end(code)
-   Evaluate in the REPL:
-   @begin[lang=repl](code)
+      @end(code)
+      Evaluate in the REPL:
+      @begin[lang=repl](code)
 CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
                        :descent-rate   1f-4
                        :friction       0.99)
 (1.9975977 3.9903917)
 3218
-   @end(code)
-   Here I overrided some default parameters @c(friction) and
-   @c(descent-rate). For more information see @ref[id=api](API) section.
+      @end(code)
+      Here I overrided some default parameters @c(friction) and
+      @c(descent-rate). For more information see @ref[id=api](API) section.
    @end(section)
 @end(section)
 
@@ -154,4 +155,65 @@ CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
    @i(global) minimum. Indeed, the minimum they find depends on various
    parameters: the starting point, the fricton and so on.)
    @end(list)
+@end(section)
+
+@begin(section)
+   @title(More examples)
+
+   @begin(section)
+      @title(Solving a system of linear equations)
+
+      Consider this system of linear equations:
+      @begin(code)
+ x + 2y +  z + 3w = 18
+2x +  y +  z +  w = 12
+ x + 3y + 2z + 4w = 28
+ x + 5y + z  +  w = 23
+      @end(code)
+      or @c(Au = v) in matrix form where @c(v) is a column containing the right
+      hand of the equations and @c(A) is a 4x4 matrix containing coefficients of
+      the equations. The solution @c(u) minimizes the cost function
+      @c(Σ@sub(k)(Au - v)@sub(k)@sup(2)). The code for the cost function is
+      the following:
+      @begin[lang=lisp](code)
+(defpackage linear-system
+  (:use #:cl)
+  #.(cl-forward-diff:shadowing-import-math)
+  (:export #:linear-system-cost))
+(in-package :linear-system)
+
+(defun matrix-vector-mul (mat vec)
+  "Multiply a matrix MAT by a column VEC"
+  (mapcar
+   (lambda (row)
+     (reduce #'+ (mapcar #'* row vec)))
+   mat))
+
+(defun linear-system-cost (mat v u)
+  "Calculate a cost function for a system of linear equations MAT*X=V at the
+  point X=U"
+  (let ((val (matrix-vector-mul mat u)))
+    (reduce
+     #'+ (mapcar
+          (lambda (v v%)
+            (expt (- v v%) 2))
+          v val))))
+      @end(code)
+
+      Now evaluate the following code in the REPL:
+      @begin[lang=lisp](code)
+(cl-optim:nag
+ (alexandria:curry #'linear-system:linear-system-cost
+                   '((1 2 1 3)
+                     (2 1 1 1)
+                     (1 3 2 4)
+                     (1 5 1 1))
+                   '(18 12 28 23))
+ '(0.0 0.0 0.0 0.0)
+ :friction 0.99)
+      @end(code)
+
+      The answer is @c((1.000277 3.0000377 4.999421 2.000142)) which is
+      calculated in 1677 steps.
+   @end(section)
 @end(section)
