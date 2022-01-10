@@ -1,21 +1,22 @@
 (in-package :cl-optim)
 
-(declaim (type (single-float 0f0) *descent-rate*))
-(defparameter *descent-rate* 5f-4
+(declaim (type (single-float 0f0) *η*))
+(defparameter *η* 5f-4
   "Default descent rate for gradient descent algorithms.")
 
-(declaim (type (single-float 0f0 1f0) *dr-ema-base*))
-(defparameter *dr-ema-base* 0.999
-  "Default base for exponential moving average of the descent rate for
-RMSprop-like algorithms.")
+(declaim (type (single-float 0f0 1f0) *β2*))
+(defparameter *β2* 0.999
+  "Default parameter for calculating the second momentum of the
+gradient in Adam.")
 
-(declaim (type (single-float 0f0) *epsilon*))
-(defparameter *epsilon* 1f-3
+(declaim (type (single-float 0f0) *ε*))
+(defparameter *ε* 1f-3
   "Exit criterion for gradient descent algorithms.")
 
-(declaim (type (single-float 0f0 1f0) *friction*))
-(defparameter *friction* 0.9
-  "Friction parameter for gradient descent algorithms with momentum.")
+(declaim (type (single-float 0f0 1f0) *β1*))
+(defparameter *β1* 0.9
+  "Default parameter for calculating the first momentum of the
+gradient in algorithms with momentum.")
 
 (declaim (type alex:positive-fixnum *max-iterations*))
 (defparameter *max-iterations* 10000
@@ -46,43 +47,43 @@ RMSprop-like algorithms.")
 (sera:-> gradient-descent
          (differentiable-multivariate
           list
-          &key (:descent-rate   (single-float 0f0))
-               (:max-iterations alex:positive-fixnum)
-               (:epsilon        (single-float 0f0)))
+          &key (:η              (single-float 0f0))
+               (:ε              (single-float 0f0))
+               (:max-iterations alex:positive-fixnum))
          (values list fixnum &optional))
 (defun gradient-descent (function start-point
                          &key
-                           (descent-rate   *descent-rate*)
-                           (max-iterations *max-iterations*)
-                           (epsilon        *epsilon*))
+                           (η              *η*)
+                           (ε              *ε*)
+                           (max-iterations *max-iterations*))
   "Find minimum of a function using vanilla gradient descent.
 
 @c(function) takes a list of values of type @c(cl-forward-diff:dual)
 and returns one value of type @c(cl-forward-diff:dual) (see
 documentation for cl-forward-diff). @c(start-point) must be a list of
 single floats and serves as a starting point for the
-algorithm. @c(descent-rate) controls how fast the algorithm follows
-the gradient of the function.
+algorithm. @c(η) controls how fast the algorithm follows the gradient
+of the function.
 
 The algorithms exists when either a number of iterations exceeds
 @c(max-iterations) or absolute value of every gradient component is
-less than @c(epsilon)."
+less than @c(ε)."
   (declare (optimize (speed 3))
            (type differentiable-multivariate function)
            (type list start-point)
-           (type (single-float 0f0) descent-rate epsilon)
+           (type (single-float 0f0) η ε)
            (type alex:positive-fixnum max-iterations))
   (labels ((descend (iteration x)
              (declare (type alex:non-negative-fixnum iteration))
              (let ((gradient (ad-multivariate function x)))
                (if (or (= iteration max-iterations)
-                       (every-magnitude-< gradient epsilon))
+                       (every-magnitude-< gradient ε))
                    (values x iteration)
                    (descend (1+ iteration)
                             (mapcar
                              (lambda (x dx)
                                (declare (type single-float x dx))
-                               (- x (* descent-rate dx)))
+                               (- x (* η dx)))
                              x gradient))))))
     (descend 0 start-point)))
 
@@ -90,46 +91,45 @@ less than @c(epsilon)."
 (sera:-> gradient-descent-momentum
          (differentiable-multivariate
           list
-          &key (:descent-rate   (single-float 0f0))
-               (:max-iterations alex:positive-fixnum)
-               (:epsilon        (single-float 0f0))
-               (:friction       (single-float 0f0 1f0)))
+          &key (:η              (single-float 0f0))
+               (:ε              (single-float 0f0))
+               (:β1             (single-float 0f0 1f0))
+               (:max-iterations alex:positive-fixnum))
          (values list fixnum &optional))
 (defun gradient-descent-momentum (function start-point
                                   &key
-                                    (descent-rate   *descent-rate*)
-                                    (max-iterations *max-iterations*)
-                                    (epsilon        *epsilon*)
-                                    (friction       *friction*))
+                                    (η              *η*)
+                                    (ε              *ε*)
+                                    (β1             *β1*)
+                                    (max-iterations *max-iterations*))
   "Find minimum of a function using gradient descent with momentum.
 
-@c(friction) controls how fast the momentum decreases on a flat
-surface. For a description of other parameters, see
-@c(gradient-descent).
+@c(β1) controls how fast the momentum decreases on a flat surface. For
+a description of other parameters, see @c(gradient-descent).
 
 The algorithms exists when either a number of iterations exceeds
 @c(max-iterations) or absolute value of every gradient component and
-momentum component is less than @c(epsilon)."
+momentum component is less than @c(ε)."
   (declare (optimize (speed 3))
            (type differentiable-multivariate function)
            (type list start-point)
-           (type (single-float 0f0) descent-rate epsilon)
-           (type (single-float 0f0 1f0) friction)
+           (type (single-float 0f0) η ε)
+           (type (single-float 0f0 1f0) β1)
            (type alex:positive-fixnum max-iterations))
   (labels ((descend (iteration x momentum)
              (declare (type alex:non-negative-fixnum iteration))
              (let ((gradient (ad-multivariate function x)))
                (if (or (= iteration max-iterations)
                        (and
-                        (every-magnitude-< gradient epsilon)
-                        (every-magnitude-< momentum epsilon)))
+                        (every-magnitude-< gradient ε)
+                        (every-magnitude-< momentum ε)))
                    (values x iteration)
                    (descend (1+ iteration)
                             (mapcar #'sf-- x momentum)
                             (mapcar
                              (lambda (m dx)
                                (declare (type single-float m dx))
-                               (+ (* friction m) (* descent-rate dx)))
+                               (+ (* β1 m) (* η dx)))
                              momentum gradient))))))
     (descend
      0 start-point
@@ -139,17 +139,17 @@ momentum component is less than @c(epsilon)."
 (sera:-> nag
          (differentiable-multivariate
           list
-          &key (:descent-rate   (single-float 0f0))
-               (:max-iterations alex:positive-fixnum)
-               (:epsilon        (single-float 0f0))
-               (:friction       (single-float 0f0 1f0)))
+          &key (:η              (single-float 0f0))
+               (:ε              (single-float 0f0))
+               (:β1             (single-float 0f0 1f0))
+               (:max-iterations alex:positive-fixnum))
          (values list fixnum &optional))
 (defun nag (function start-point
             &key
-              (descent-rate   *descent-rate*)
-              (max-iterations *max-iterations*)
-              (epsilon        *epsilon*)
-              (friction       *friction*))
+              (η              *η*)
+              (ε              *ε*)
+              (β1             *β1*)
+              (max-iterations *max-iterations*))
   "Find minimum of a function using Nesterov's advanced gradient
 descent algorithm. For a description of parameters see
 @c(gradient-descent) and @c(gradient-descent-momentum).
@@ -158,31 +158,31 @@ Exit criterion is the same as in @c(gradient-descent-momentum)."
   (declare (optimize (speed 3))
            (type differentiable-multivariate function)
            (type list start-point)
-           (type (single-float 0f0) descent-rate epsilon)
-           (type (single-float 0f0 1f0) friction)
+           (type (single-float 0f0) η ε)
+           (type (single-float 0f0 1f0) β1)
            (type alex:positive-fixnum max-iterations))
   (labels ((descend (iteration x momentum)
              (declare (type alex:non-negative-fixnum iteration))
              (let ((gradient (ad-multivariate function x)))
                (if (or (= iteration max-iterations)
                        (and
-                        (every-magnitude-< gradient epsilon)
-                        (every-magnitude-< momentum epsilon)))
+                        (every-magnitude-< gradient ε)
+                        (every-magnitude-< momentum ε)))
                    (values x iteration)
                    (let ((gradient-look-ahead
                           (ad-multivariate
                            function (mapcar
                                      (lambda (x m)
                                        (declare (type single-float x m))
-                                       (- x (* friction m)))
+                                       (- x (* β1 m)))
                                      x momentum))))
-                   (descend (1+ iteration)
-                            (mapcar #'sf-- x momentum)
-                            (mapcar
-                             (lambda (m dx)
-                               (declare (type single-float m dx))
-                               (+ (* friction m) (* descent-rate dx)))
-                             momentum gradient-look-ahead)))))))
+                     (descend (1+ iteration)
+                              (mapcar #'sf-- x momentum)
+                              (mapcar
+                               (lambda (m dx)
+                                 (declare (type single-float m dx))
+                                 (+ (* β1 m) (* η dx)))
+                               momentum gradient-look-ahead)))))))
     (descend
      0 start-point
      (loop repeat (length start-point) collect 0f0))))
@@ -191,21 +191,21 @@ Exit criterion is the same as in @c(gradient-descent-momentum)."
 (sera:-> adam
          (differentiable-multivariate
           list
-          &key (:descent-rate   (single-float 0f0))
-               (:max-iterations alex:positive-fixnum)
-               (:epsilon        (single-float 0f0))
-               (:dr-ema-base    (single-float 0f0 1f0))
-               (:friction       (single-float 0f0 1f0)))
+          &key (:η              (single-float 0f0))
+               (:ε              (single-float 0f0))
+               (:β1             (single-float 0f0 1f0))
+               (:β2             (single-float 0f0 1f0))
+               (:max-iterations alex:positive-fixnum))
          (values list fixnum &optional))
 (defun adam (function start-point
              &key
-               (descent-rate   *descent-rate*)
-               (max-iterations *max-iterations*)
-               (epsilon        *epsilon*)
-               (dr-ema-base    *dr-ema-base*)
-               (friction       *friction*))
-  "Find minimum of a function using Adam. @c(dr-ema-base) is a
-parameter used in calculation of the gradient's second moment. For a
+               (η              *η*)
+               (ε              *ε*)
+               (β1             *β1*)
+               (β2             *β2*)
+               (max-iterations *max-iterations*))
+  "Find minimum of a function using Adam. @c(β2) is a parameter used
+in calculation of the second momentum of the gradient. For a
 description of other parameters see @c(gradient-descent) and
 @c(gradient-descent-momentum).
 
@@ -213,8 +213,8 @@ Exit criterion is the same as in @c(gradient-descent-momentum)."
   (declare (optimize (speed 3))
            (type differentiable-multivariate function)
            (type list start-point)
-           (type (single-float 0f0) descent-rate epsilon)
-           (type (single-float 0f0 1f0) dr-ema-base friction)
+           (type (single-float 0f0) η ε)
+           (type (single-float 0f0 1f0) β1 β2)
            (type alex:positive-fixnum max-iterations))
   (labels ((corrent-value (value coeff iteration)
              (declare (type alex:non-negative-fixnum iteration)
@@ -223,34 +223,34 @@ Exit criterion is the same as in @c(gradient-descent-momentum)."
                        (declare (type single-float v))
                        (/ v (- 1 (expt coeff (1+ iteration)))))
                      value))
-           (descend (iteration x dr-ema momentum)
+           (descend (iteration x momentum momentum2)
              (declare (type alex:non-negative-fixnum iteration))
              (let ((gradient (ad-multivariate function x)))
                (if (or (= iteration max-iterations)
                        (and
-                        (every-magnitude-< gradient epsilon)
-                        (every-magnitude-< momentum epsilon)))
+                        (every-magnitude-< gradient ε)
+                        (every-magnitude-< momentum ε)))
                    (values x iteration)
-                   (let ((dr-ema (mapcar
-                                  (lambda (e g)
-                                    (declare (type single-float e g))
-                                    (+ (* dr-ema-base e)
-                                       (* (- 1 dr-ema-base) (expt g 2))))
-                                  dr-ema gradient))
+                   (let ((momentum2 (mapcar
+                                     (lambda (m2 g)
+                                       (declare (type single-float m2 g))
+                                       (+ (* β2 m2)
+                                          (* (- 1 β2) (expt g 2))))
+                                     momentum2 gradient))
                          (momentum (mapcar
                                     (lambda (m g)
                                       (declare (type single-float m g))
-                                      (+ (* friction m) (* (- 1 friction) g)))
+                                      (+ (* β1 m) (* (- 1 β1) g)))
                                     momentum gradient)))
                      (descend (1+ iteration)
-                              (mapcar (lambda (x e m)
+                              (mapcar (lambda (x m m2)
                                         (declare (type single-float x m)
-                                                 (type (single-float 0f0) e))
-                                        (- x (/ (* descent-rate m)
-                                                (+ (sqrt e) 1f-8))))
+                                                 (type (single-float 0f0) m2))
+                                        (- x (/ (* η m)
+                                                (+ (sqrt m2) 1f-8))))
                                       x
-                                      (corrent-value dr-ema   dr-ema-base iteration)
-                                      (corrent-value momentum friction    iteration))
-                              dr-ema momentum))))))
+                                      (corrent-value momentum  β1 iteration)
+                                      (corrent-value momentum2 β2 iteration))
+                              momentum momentum2))))))
     (let ((zeros (loop repeat (length start-point) collect 0f0)))
       (descend 0 start-point zeros zeros))))

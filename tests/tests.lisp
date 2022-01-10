@@ -29,7 +29,7 @@
          #'gradient-descent-momentum
          #'nag
          (lambda (fn x)
-           (adam fn x :descent-rate 1f-2)))))
+           (adam fn x :η 1f-2)))))
 
 (test opt-booth
   (mapcar
@@ -44,7 +44,7 @@
    (list #'gradient-descent-momentum
          #'nag
          (lambda (fn x)
-           (adam fn x :descent-rate 1f-2)))))
+           (adam fn x :η 1f-2)))))
 
 (test opt-rosenbrock
   (mapcar
@@ -60,23 +60,22 @@
    (list
     (lambda (fn x)
       (nag fn x
-           :descent-rate 1e-4
-           :friction 0.99
-           :epsilon 1e-4
+           :η  1e-4
+           :β1 0.99
+           :ε  1e-4
            :max-iterations 20000))
     (lambda (fn x)
       (adam fn x
-            :descent-rate 1e-2
-            :epsilon 1e-4
+            :η 1e-2
+            :ε 1e-4
             :max-iterations 20000)))))
-
 
 (test opt-hills
   (loop repeat 10 do
        (multiple-value-bind (x iter)
            (nag (alexandria:compose #'hills #'car)
                 (list (+ (random 4.0) 11.0))
-                :descent-rate 1e-3
-                :friction 0.95)
+                :η  1e-3
+                :β1 0.95)
          (is (< iter *max-iterations*))
          (is (closep x '(3.219))))))

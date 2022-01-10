@@ -10,8 +10,8 @@
            #:nag
            #:adam
 
-           #:*descent-rate*
-           #:*epsilon*
-           #:*friction*
-           #:*dr-ema-base*
+           #:*η*
+           #:*ϵ*
+           #:*β1*
+           #:*β2*
            #:*max-iterations*))

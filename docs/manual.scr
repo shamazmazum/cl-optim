@@ -114,8 +114,8 @@ CL-USER> (cl-optim:nag
       Evaluate in the REPL:
       @begin[lang=repl](code)
 CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
-                       :descent-rate   1f-4
-                       :friction       0.99)
+                       :η  1f-4
+                       :β1 0.99)
 (1.9975977 3.9903917)
 3218
       @end(code)
@@ -134,11 +134,11 @@ CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
       @cl:doc(function adam)
    )
    @u(Parameters)
-      @cl:with-package[name="cl-optim"](
-      @cl:doc(variable *descent-rate*)
-      @cl:doc(variable *epsilon*)
-      @cl:doc(variable *friction*)
-      @cl:doc(variable *dr-ema-base*)
+   @cl:with-package[name="cl-optim"](
+      @cl:doc(variable *ε*)
+      @cl:doc(variable *η*)
+      @cl:doc(variable *β1*)
+      @cl:doc(variable *β2*)
       @cl:doc(variable *max-iterations*)
    )
 @end(section)
@@ -212,7 +212,7 @@ CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
                      (1 5 1 1))
                    '(18 12 28 23))
  '(0.0 0.0 0.0 0.0)
- :friction 0.99)
+ :β1 0.99)
       @end(code)
 
       The answer is @c((1.000277 3.0000377 4.999421 2.000142)) which is
