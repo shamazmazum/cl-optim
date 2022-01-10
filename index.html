@@ -146,8 +146,8 @@
       </code></pre><p>
       Evaluate in the REPL:
       </p><pre><code class="repl">CL-USER&gt; (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
-                       :descent-rate   1f-4
-                       :friction       0.99)
+                       :η  1f-4
+                       :β1 0.99)
 (1.9975977 3.9903917)
 3218
       </code></pre><p>
