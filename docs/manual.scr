@@ -156,7 +156,19 @@ CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
    @item(Remember, that these algorithms are not guarateed to find the
    @i(global) minimum. Indeed, the minimum they find depends on various
    parameters: the starting point, the fricton and so on.)
+   @item(If you use Emacs, the lines at the end of this section added to
+   @c(~/.emacs) will help you to type Greek symbols. For example, to type ε you
+   need to type @c(\upepsilon) and press Tab.)
    @end(list)
+
+   @begin[lang=lisp](code)
+(defun indent-or-latexsub (arg)
+  (interactive "*i")
+  (if (latexsub)
+      (indent-for-tab-command)))
+
+(global-set-key (kbd "TAB") 'indent-or-latexsub)
+   @end(code)
 @end(section)
 
 @begin(section)
