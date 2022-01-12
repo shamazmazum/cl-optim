@@ -1,19 +1,19 @@
 (in-package :cl-optim)
 
-(declaim (type (single-float 0f0) *η*))
+(declaim (type alex:positive-single-float *η*))
 (defparameter *η* 5f-4
   "Default descent rate for gradient descent algorithms.")
 
-(declaim (type (single-float 0f0 1f0) *β2*))
+(declaim (type single-unit-range *β2*))
 (defparameter *β2* 0.999
   "Default parameter for calculating the second momentum of the
 gradient in Adam.")
 
-(declaim (type (single-float 0f0) *ε*))
+(declaim (type alex:positive-single-float *ε*))
 (defparameter *ε* 1f-3
   "Exit criterion for gradient descent algorithms.")
 
-(declaim (type (single-float 0f0 1f0) *β1*))
+(declaim (type single-unit-range *β1*))
 (defparameter *β1* 0.9
   "Default parameter for calculating the first momentum of the
 gradient in algorithms with momentum.")
@@ -47,8 +47,8 @@ gradient in algorithms with momentum.")
 (sera:-> gradient-descent
          (differentiable-multivariate
           list
-          &key (:η              (single-float 0f0))
-               (:ε              (single-float 0f0))
+          &key (:η              alex:positive-single-float)
+               (:ε              alex:positive-single-float)
                (:max-iterations alex:positive-fixnum))
          (values list fixnum &optional))
 (defun gradient-descent (function start-point
@@ -71,7 +71,7 @@ less than @c(ε)."
   (declare (optimize (speed 3))
            (type differentiable-multivariate function)
            (type list start-point)
-           (type (single-float 0f0) η ε)
+           (type alex:positive-single-float η ε)
            (type alex:positive-fixnum max-iterations))
   (labels ((descend (iteration x)
              (declare (type alex:non-negative-fixnum iteration))
@@ -91,9 +91,9 @@ less than @c(ε)."
 (sera:-> gradient-descent-momentum
          (differentiable-multivariate
           list
-          &key (:η              (single-float 0f0))
-               (:ε              (single-float 0f0))
-               (:β1             (single-float 0f0 1f0))
+          &key (:η              alex:positive-single-float)
+               (:ε              alex:positive-single-float)
+               (:β1             single-unit-range)
                (:max-iterations alex:positive-fixnum))
          (values list fixnum &optional))
 (defun gradient-descent-momentum (function start-point
@@ -113,8 +113,8 @@ momentum component is less than @c(ε)."
   (declare (optimize (speed 3))
            (type differentiable-multivariate function)
            (type list start-point)
-           (type (single-float 0f0) η ε)
-           (type (single-float 0f0 1f0) β1)
+           (type alex:positive-single-float η ε)
+           (type single-unit-range β1)
            (type alex:positive-fixnum max-iterations))
   (labels ((descend (iteration x momentum)
              (declare (type alex:non-negative-fixnum iteration))
@@ -139,9 +139,9 @@ momentum component is less than @c(ε)."
 (sera:-> nag
          (differentiable-multivariate
           list
-          &key (:η              (single-float 0f0))
-               (:ε              (single-float 0f0))
-               (:β1             (single-float 0f0 1f0))
+          &key (:η              alex:positive-single-float)
+               (:ε              alex:positive-single-float)
+               (:β1             single-unit-range)
                (:max-iterations alex:positive-fixnum))
          (values list fixnum &optional))
 (defun nag (function start-point
@@ -158,8 +158,8 @@ Exit criterion is the same as in @c(gradient-descent-momentum)."
   (declare (optimize (speed 3))
            (type differentiable-multivariate function)
            (type list start-point)
-           (type (single-float 0f0) η ε)
-           (type (single-float 0f0 1f0) β1)
+           (type alex:positive-single-float η ε)
+           (type single-unit-range β1)
            (type alex:positive-fixnum max-iterations))
   (labels ((descend (iteration x momentum)
              (declare (type alex:non-negative-fixnum iteration))
@@ -191,10 +191,10 @@ Exit criterion is the same as in @c(gradient-descent-momentum)."
 (sera:-> adam
          (differentiable-multivariate
           list
-          &key (:η              (single-float 0f0))
-               (:ε              (single-float 0f0))
-               (:β1             (single-float 0f0 1f0))
-               (:β2             (single-float 0f0 1f0))
+          &key (:η              alex:positive-single-float)
+               (:ε              alex:positive-single-float)
+               (:β1             single-unit-range)
+               (:β2             single-unit-range)
                (:max-iterations alex:positive-fixnum))
          (values list fixnum &optional))
 (defun adam (function start-point
@@ -213,8 +213,8 @@ Exit criterion is the same as in @c(gradient-descent-momentum)."
   (declare (optimize (speed 3))
            (type differentiable-multivariate function)
            (type list start-point)
-           (type (single-float 0f0) η ε)
-           (type (single-float 0f0 1f0) β1 β2)
+           (type alex:positive-single-float η ε)
+           (type single-unit-range β1 β2)
            (type alex:positive-fixnum max-iterations))
   (labels ((corrent-value (value coeff iteration)
              (declare (type alex:non-negative-fixnum iteration)
@@ -245,7 +245,7 @@ Exit criterion is the same as in @c(gradient-descent-momentum)."
                      (descend (1+ iteration)
                               (mapcar (lambda (x m m2)
                                         (declare (type single-float x m)
-                                                 (type (single-float 0f0) m2))
+                                                 (type alex:non-negative-single-float m2))
                                         (- x (/ (* η m)
                                                 (+ (sqrt m2) 1f-8))))
                                       x

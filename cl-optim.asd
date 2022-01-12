@@ -7,7 +7,10 @@
   :serial t
   :pathname "src/"
   :components ((:file "package")
-               (:file "optimize"))
+               (:file "types")
+               (:file "gradient")
+               #+nil
+               (:file "annealing"))
   :depends-on (:cl-forward-diff :serapeum :alexandria)
   :in-order-to ((test-op (load-op "cl-optim/tests")))
   :perform (test-op (op system)
