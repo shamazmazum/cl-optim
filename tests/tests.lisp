@@ -8,9 +8,9 @@
                    (explain! (run suite)))
                  '(optim))))
 
-(defun closep (result expected)
+(defun closep (result expected &optional (tolerance 5e-3))
   (every
-   (lambda (x y) (< (abs (- x y)) 5e-3))
+   (lambda (x y) (< (abs (- x y)) tolerance))
    result expected))
 
 (in-suite optim)
@@ -79,3 +79,14 @@
                 :β1 0.95)
          (is (< iter *max-iterations*))
          (is (closep x '(3.219))))))
+
+(test opt-noise-sinc
+  (is
+   (<= (count
+        nil
+        (loop repeat 10 collect
+             (let ((opt (simulated-annealing
+                         (alexandria:compose #'noise-sinc #'first)
+                         '(10.0))))
+               (closep opt '(4.0) 0.15))))
+       2)))

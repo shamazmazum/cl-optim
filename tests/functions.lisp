@@ -1,8 +1,7 @@
-(in-package :cl-optim-tests-fn)
-
-;; Functions for optimizations
-
 (declaim (optimize (speed 3)))
+
+;; Differentiable
+(in-package :cl-optim-tests-fn-diff)
 
 (defun rosenbrock (list)
   (destructuring-bind (x y)
@@ -29,3 +28,13 @@
   (declare (type dual x))
   (+ (expt (- x 4) 2)
      (* 10 (expt (sin x) 2))))
+
+;; Not differentiable
+(in-package :cl-optim-tests-fn)
+
+(defun noise-sinc (x)
+  (declare (type single-float x))
+  (let ((x-shift (- x 4)))
+    (- (random 0.2)
+       (if (zerop x-shift) 1.0
+           (/ (sin (* 5 x-shift)) x-shift)))))

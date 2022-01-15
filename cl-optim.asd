@@ -9,7 +9,6 @@
   :components ((:file "package")
                (:file "types")
                (:file "gradient")
-               #+nil
                (:file "annealing"))
   :depends-on (:cl-forward-diff :serapeum :alexandria)
   :in-order-to ((test-op (load-op "cl-optim/tests")))

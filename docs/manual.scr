@@ -122,16 +122,59 @@ CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
       Here I overrided some default parameters @c(friction) and
       @c(descent-rate). For more information see @ref[id=api](API) section.
    @end(section)
+
+   @begin(section)
+      @title(Algorithms which work without gradient)
+
+      Currently there is only one algorithm in @c(cl-optim) which can optimize
+      non-differentiable functions: simulated annealing. The function you wish
+      to minimize must operate with @c(single-float) numbers, not with
+      @c(dual)s. Take this function as an example.
+
+      @begin[lang=lisp](code)
+(defun noise-sinc (x)
+  (declare (type single-float x))
+  ;; Here all math function are from CL package.
+  (let ((x-shift (- x 4)))
+    (- (random 0.2)
+       (if (zerop x-shift) 1.0
+           (/ (sin (* 5 x-shift)) x-shift)))))
+      @end(code)
+
+      This is a @i(sinc) function subtracted from a random noise with a small
+      amplitude. This function can not be differentiated due to this noise. Now
+      try this in the REPL:
+
+      @begin[lang=repl](code)
+CL-USER> (cl-optim:simulated-annealing (alexandria:compose #'noise-sinc #'first) '(15.0))
+(4.0212755)
+#S(CL-OPTIM:SIMULATED-ANNEALING-SUMMARY
+   :TEMPERATURE 9.9985475e-5
+   :ITERATIONS 288892
+   :MINIMIZING-STEPS 8361
+   :REJECTED-STEPS 279686)
+      @end(code)
+
+      The minimum is around the point @c((4.0)). As you can see, this method
+      does a big amount of evaluations of the function, but it does not require
+      the function to be differentiable.
+   @end(section)
 @end(section)
 
 @begin[ref=api](section)
    @title(API)
-   @u(Algorithms)
+   @u(Gradient-based algorithms)
    @cl:with-package[name="cl-optim"](
       @cl:doc(function gradient-descent)
       @cl:doc(function gradient-descent-momentum)
       @cl:doc(function nag)
       @cl:doc(function adam)
+   )
+   @u(Heuristics)
+   @cl:with-package[name="cl-optim"](
+      @cl:doc(function simulated-annealing)
+      @cl:doc(function exponential-cooldown)
+      @cl:doc(function normal-neighborhood)
    )
    @u(Parameters)
    @cl:with-package[name="cl-optim"](
@@ -140,6 +183,7 @@ CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
       @cl:doc(variable *β1*)
       @cl:doc(variable *β2*)
       @cl:doc(variable *max-iterations*)
+      @cl:doc(variable *final-temperature*)
    )
 @end(section)
 
@@ -153,9 +197,12 @@ CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
    @c(cl-optim) if you use SBCL. This way SBCL will know about mathematical
    functions from @c(libm) which work with single precision floats, like
    @c(sinf), @c(cosf), etc.)
-   @item(Remember, that these algorithms are not guarateed to find the
+   @item(Remember, the gradient-based algorithms are not guarateed to find the
    @i(global) minimum. Indeed, the minimum they find depends on various
-   parameters: the starting point, the fricton and so on.)
+   parameters: the starting point, the fricton and so on. If the function you
+   want to minimize is convex, you will find a global minimum. On the contrary,
+   the heuristic algorithms like simulated annealing try to find the global
+   minimum by design.)
    @item(If you use Emacs, the lines at the end of this section added to
    @c(~/.emacs) will help you to type Greek symbols. For example, to type ε you
    need to type @c(\upepsilon) and press Tab.)

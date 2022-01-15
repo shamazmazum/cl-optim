@@ -5,13 +5,30 @@
   (:import-from
    #:cl-forward-diff
    #:dual #:differentiable-multivariate #:ad-multivariate)
-  (:export #:gradient-descent
-           #:gradient-descent-momentum
-           #:nag
-           #:adam
+  (:export
+   ;; Gradient based
+   #:gradient-descent
+   #:gradient-descent-momentum
+   #:nag
+   #:adam
 
-           #:*η*
-           #:*ϵ*
-           #:*β1*
-           #:*β2*
-           #:*max-iterations*))
+   ;; Heuristics
+   #:simulated-annealing
+   #:exponential-cooldown
+   #:normal-neighborhood
+
+   ;; Parameters
+   #:*η*
+   #:*ϵ*
+   #:*β1*
+   #:*β2*
+   #:*max-iterations*
+   #:*final-temperature*
+
+   ;; Run summary (simulated annealing)
+   #:simulated-annealing-summary
+   #:summary-temperature
+   #:summary-iterations
+   #:summary-minimizing-steps
+   #:summary-maximizing-steps
+   #:summary-rejected-steps))
