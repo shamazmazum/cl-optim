@@ -41,7 +41,7 @@
   <h1 class="doc-title">cl-optim</h1>
   <article id="article" data-section="index">
     <aside>
-      <ol class="toc"><li><a href="index.html" data-node="index">Manual</a><ol><li><a href="index.html#gradient-based-algorithms" data-node="gradient-based-algorithms">Gradient-based algorithms</a></li></ol></li><li><a href="api.html" data-node="api">API</a></li><li><a href="tips.html" data-node="tips">Tips</a></li><li><a href="more-examples.html" data-node="more-examples">More examples</a><ol><li><a href="solving-a-system-of-linear-equations.html" data-node="solving-a-system-of-linear-equations">Solving a system of linear equations</a></li></ol></li></ol>
+      <ol class="toc"><li><a href="index.html" data-node="index">Manual</a><ol><li><a href="index.html#gradient-based-algorithms" data-node="gradient-based-algorithms">Gradient-based algorithms</a></li><li><a href="index.html#algorithms-which-work-without-gradient" data-node="algorithms-which-work-without-gradient">Algorithms which work without gradient</a></li></ol></li><li><a href="api.html" data-node="api">API</a></li><li><a href="tips.html" data-node="tips">Tips</a></li><li><a href="more-examples.html" data-node="more-examples">More examples</a><ol><li><a href="solving-a-system-of-linear-equations.html" data-node="solving-a-system-of-linear-equations">Solving a system of linear equations</a></li></ol></li></ol>
     </aside>
     <main class="codex-section">
       <header>
@@ -153,6 +153,28 @@
       </code></pre><p>
       Here I overrided some default parameters <code>friction</code> and
       <code>descent-rate</code>. For more information see <a id="api" href="api.html" data-node="api">API</a> section.
+   </p><p>   </p><h1 id="algorithms-which-work-without-gradient">Algorithms which work without gradient</h1><p>      Currently there is only one algorithm in <code>cl-optim</code> which can optimize
+      non-differentiable functions: simulated annealing. The function you wish
+      to minimize must operate with <code>single-float</code> numbers, not with
+      <code>dual</code>s. Take this function as an example.</p><p>      </p><pre><code class="lisp">(defun noise-sinc (x)
+  (declare (type single-float x))
+  ;; Here all math function are from CL package.
+  (let ((x-shift (- x 4)))
+    (- (random 0.2)
+       (if (zerop x-shift) 1.0
+           (/ (sin (* 5 x-shift)) x-shift)))))
+      </code></pre><p>      This is a <i>sinc</i> function subtracted from a random noise with a small
+      amplitude. This function can not be differentiated due to this noise. Now
+      try this in the REPL:</p><p>      </p><pre><code class="repl">CL-USER&gt; (cl-optim:simulated-annealing (alexandria:compose #'noise-sinc #'first) '(15.0))
+(4.0212755)
+#S(CL-OPTIM:SIMULATED-ANNEALING-SUMMARY
+   :TEMPERATURE 9.9985475e-5
+   :ITERATIONS 288892
+   :MINIMIZING-STEPS 8361
+   :REJECTED-STEPS 279686)
+      </code></pre><p>      The minimum is around the point <code>(4.0)</code>. As you can see, this method
+      does a big amount of evaluations of the function, but it does not require
+      the function to be differentiable.
    </p><p>
 </p>
       </div>
