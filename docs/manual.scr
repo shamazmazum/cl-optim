@@ -119,8 +119,8 @@ CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
 (1.9975977 3.9903917)
 3218
       @end(code)
-      Here I overrided some default parameters @c(friction) and
-      @c(descent-rate). For more information see @ref[id=api](API) section.
+      Here I overrided some default parameters @c(β1) and @c(η). For more
+      information see @ref[id=api](API) section.
    @end(section)
 
    @begin(section)
@@ -203,9 +203,9 @@ CL-USER> (cl-optim:simulated-annealing (alexandria:compose #'noise-sinc #'first)
    want to minimize is convex, you will find a global minimum. On the contrary,
    the heuristic algorithms like simulated annealing try to find the global
    minimum by design.)
-   @item(If you use Emacs, the lines at the end of this section added to
-   @c(~/.emacs) will help you to type Greek symbols. For example, to type ε you
-   need to type @c(\upepsilon) and press Tab.)
+   @item(If you use Emacs with julia-mode, the lines at the end of this section
+   added to @c(~/.emacs) will help you to type Greek symbols. For example, to
+   type ε you need to type @c(\upepsilon) and press Tab.)
    @end(list)
 
    @begin[lang=lisp](code)
