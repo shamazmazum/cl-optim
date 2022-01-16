@@ -59,9 +59,9 @@
    parameters: the starting point, the fricton and so on. If the function you
    want to minimize is convex, you will find a global minimum. On the contrary,
    the heuristic algorithms like simulated annealing try to find the global
-   minimum by design.</li><li>If you use Emacs, the lines at the end of this section added to
-   <code>~/.emacs</code> will help you to type Greek symbols. For example, to type ε you
-   need to type <code>\upepsilon</code> and press Tab.</li></ul><p>   </p><pre><code class="lisp">(defun indent-or-latexsub (arg)
+   minimum by design.</li><li>If you use Emacs with julia-mode, the lines at the end of this section
+   added to <code>~/.emacs</code> will help you to type Greek symbols. For example, to
+   type ε you need to type <code>\upepsilon</code> and press Tab.</li></ul><p>   </p><pre><code class="lisp">(defun indent-or-latexsub (arg)
   (interactive &quot;*i&quot;)
   (if (latexsub)
       (indent-for-tab-command)))
