@@ -19,7 +19,7 @@
 
    ;; Parameters
    #:*η*
-   #:*ϵ*
+   #:*ε*
    #:*β1*
    #:*β2*
    #:*max-iterations*
