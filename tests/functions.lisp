@@ -33,8 +33,8 @@
 (in-package :cl-optim-tests-fn)
 
 (defun noise-sinc (x)
-  (declare (type single-float x))
+  (declare (type double-float x))
   (let ((x-shift (- x 4)))
     (- (random 0.2)
-       (if (zerop x-shift) 1.0
+       (if (zerop x-shift) 1d0
            (/ (sin (* 5 x-shift)) x-shift)))))

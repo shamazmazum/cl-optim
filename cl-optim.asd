@@ -1,11 +1,11 @@
 (defsystem :cl-optim
   :name :cl-optim
-  :version "0.1"
+  :version "0.2"
   :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
   :description "Optimization of differentiable functions in CL"
   :licence "2-clause BSD"
   :serial t
-  :pathname "src/"
+  :pathname "src"
   :components ((:file "package")
                (:file "types")
                (:file "gradient")
@@ -18,10 +18,10 @@
 
 (defsystem :cl-optim/tests
   :name :cl-optim/tests
-  :version "0.1"
+  :version "0.2"
   :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
   :licence "2-clause BSD"
-  :pathname "tests/"
+  :pathname "tests"
   :serial t
   :components ((:file "packages")
                (:file "functions")

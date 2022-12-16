@@ -29,18 +29,11 @@
   (:export #:polynomial))
 (in-package :polynomial)
 
-(defun gen-reduce (function initial-value generator)
-  (labels ((reduce% (acc)
-             (let ((value (funcall generator)))
-               (if (eq value 'generator-stop) acc
-                   (reduce% (funcall function acc value))))))
-    (reduce% initial-value)))
-
 (-> polynomial (list dual) (values dual &optional))
 (defun polynomial (coeffs x)
   (declare (type dual x))
-  (gen-reduce
-   #'+ 0
+  (reduce-generator
+   #'+
    (imap (lambda (c n)
            (* c (expt x n)))
          (list->generator coeffs)
@@ -56,11 +49,11 @@
       point @c(x) (let @c(x = 2)) along with its first derivative @c(f'(x) = 2 +
       6x) like this:
       @begin[lang=repl](code)
-CL-USER> (polynomial:polynomial '(1 2 3) #d(2.0 1.0))
-#D(17.0 14.0)
+CL-USER> (polynomial:polynomial '(1 2 3) #d(2d0 1d0))
+#<SIMD-PACK 1.7000000000000d+1 1.4000000000000d+1>
       @end(code)
       The type @c(dual) is implemented as a structure which has two slots for
-      single float numbers, so all calculations are performed with single
+      double float numbers, so all calculations are performed with double
       precision.
 
       Now when we have this function, @c(polynomial), we want to find the
@@ -70,8 +63,8 @@ CL-USER> (polynomial:polynomial '(1 2 3) #d(2.0 1.0))
 CL-USER> (cl-optim:gradient-descent
           (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
                               #'first)
-          '(10.0))
-(-0.33316675)
+          '(10d0))
+(-0.3331667786236352d0)
 3673
       @end(code)
       The first argument of @c(gradient-descent) is a function to be
@@ -79,7 +72,7 @@ CL-USER> (cl-optim:gradient-descent
       return a dual number. We must compose partially applied @c(polynomial)
       with @c(first) because the second argument of @c(polynomial) is of type
       @c(dual), not @c(list). The second argument is a starting point for a
-      search. It is a list of single floats of the same length @c(n). Because
+      search. It is a list of double floats of the same length @c(n). Because
       our function is convex, just every starting point will do.
 
       The first returned value is the found minimum and the second is the number
@@ -89,8 +82,8 @@ CL-USER> (cl-optim:gradient-descent
 CL-USER> (cl-optim:nag
           (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
                               #'first)
-          '(10.0))
-(-0.33344847)
+          '(10d0))
+(-0.33344855804382767d0)
 139
       @end(code)
 
@@ -113,11 +106,11 @@ CL-USER> (cl-optim:nag
       @end(code)
       Evaluate in the REPL:
       @begin[lang=repl](code)
-CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
-                       :η  1f-4
-                       :β1 0.99)
-(1.9975977 3.9903917)
-3218
+CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1d0 1d0)
+                       :η  1d-4
+                       :β1 0.99d0)
+(1.9975950013447854d0 3.990380982511882d0)
+3217
       @end(code)
       Here I overrided some default parameters @c(β1) and @c(η). For more
       information see @ref[id=api](API) section.
@@ -128,16 +121,16 @@ CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
 
       Currently there is only one algorithm in @c(cl-optim) which can optimize
       non-differentiable functions: simulated annealing. The function you wish
-      to minimize must operate with @c(single-float) numbers, not with
+      to minimize must operate with @c(double-float) numbers, not with
       @c(dual)s. Take this function as an example.
 
       @begin[lang=lisp](code)
 (defun noise-sinc (x)
-  (declare (type single-float x))
+  (declare (type double-float x))
   ;; Here all math function are from CL package.
   (let ((x-shift (- x 4)))
-    (- (random 0.2)
-       (if (zerop x-shift) 1.0
+    (- (random 2d-1)
+       (if (zerop x-shift) 1d0
            (/ (sin (* 5 x-shift)) x-shift)))))
       @end(code)
 
@@ -146,16 +139,16 @@ CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
       try this in the REPL:
 
       @begin[lang=repl](code)
-CL-USER> (cl-optim:simulated-annealing (alexandria:compose #'noise-sinc #'first) '(15.0))
-(4.0212755)
+CL-USER> (cl-optim:simulated-annealing (alexandria:compose #'noise-sinc #'first) '(15d0))
+(4.0656966038580755d0)
 #S(CL-OPTIM:SIMULATED-ANNEALING-SUMMARY
-   :TEMPERATURE 9.9985475e-5
-   :ITERATIONS 288892
-   :MINIMIZING-STEPS 8361
-   :REJECTED-STEPS 279686)
+   :TEMPERATURE 9.99734336301017d-5
+   :ITERATIONS 27764
+   :MINIMIZING-STEPS 8247
+   :REJECTED-STEPS 18558)
       @end(code)
 
-      The minimum is around the point @c((4.0)). As you can see, this method
+      The minimum is around the point @c((4d0)). As you can see, this method
       does a big amount of evaluations of the function, but it does not require
       the function to be differentiable.
    @end(section)
@@ -193,10 +186,6 @@ CL-USER> (cl-optim:simulated-annealing (alexandria:compose #'noise-sinc #'first)
    @item(Do not forgot to use @c(optimize (speed 3)) declaration in functions
    which may be a bottleneck. Though not as smart as with ordinary math
    functions, SBCL can produce nice assembly code when optimizing for speed.)
-   @item(You can add @c(:single-float-tran) to @c(*features*) before loading
-   @c(cl-optim) if you use SBCL. This way SBCL will know about mathematical
-   functions from @c(libm) which work with single precision floats, like
-   @c(sinf), @c(cosf), etc.)
    @item(Remember, the gradient-based algorithms are not guarateed to find the
    @i(global) minimum. Indeed, the minimum they find depends on various
    parameters: the starting point, the fricton and so on. If the function you
@@ -270,11 +259,11 @@ CL-USER> (cl-optim:simulated-annealing (alexandria:compose #'noise-sinc #'first)
                      (1 3 2 4)
                      (1 5 1 1))
                    '(18 12 28 23))
- '(0.0 0.0 0.0 0.0)
- :β1 0.99)
+ '(0d0 0d0 0d0 0d0)
+ :β1 0.99d0)
       @end(code)
 
-      The answer is @c((1.000277 3.0000377 4.999421 2.000142)) which is
-      calculated in 1677 steps.
+      The answer is @c((1.0002765751873173d0 3.0000372148287466d0 4.999420273764028d0  2.000141438374246d0))
+      which is calculated in 1677 steps.
    @end(section)
 @end(section)
