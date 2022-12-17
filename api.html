@@ -54,9 +54,8 @@
       <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">gradient-descent</code><code class="codex-lambda-list">(function start-point &amp;key (η *η*) (ε *ε*) (max-iterations *max-iterations*))</code><div class="codex-docstring"><p>Find minimum of a function using vanilla gradient descent.<code>function</code> takes a list of values of type <code>cl-forward-diff:dual</code>
 and returns one value of type <code>cl-forward-diff:dual</code>(see
 documentation for cl-forward-diff). <code>start-point</code> must be a list of
-single floats and serves as a starting point for the
-algorithm. <code>η</code> controls how fast the algorithm follows the gradient
-of the function.</p><p>The algorithms exists when either a number of iterations exceeds
+double floats and serves as a starting point for the algorithm. <code>η</code>
+controls how fast the algorithm follows the gradient of the function.</p><p>The algorithms exists when either a number of iterations exceeds
 <code>max-iterations</code> or absolute value of every gradient component is
 less than <code>ε</code>.</p></div></div>
       <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">gradient-descent-momentum</code><code class="codex-lambda-list">(function start-point &amp;key (η *η*) (ε *ε*) (β1 *β1*) (max-iterations *max-iterations*))</code><div class="codex-docstring"><p>Find minimum of a function using gradient descent with momentum.<code>β1</code> controls how fast the momentum decreases on a flat surface. For
@@ -73,18 +72,18 @@ description of other parameters see <code>gradient-descent</code> and
    
    <u>Heuristics</u>
    
-      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">simulated-annealing</code><code class="codex-lambda-list">(function start-point &amp;key (max-iterations most-positive-fixnum) (initial-temperature 1.0) (final-temperature *final-temperature*) (cooldown (exponential-cooldown 0.999)) (next (normal-neighborhood 1.0)))</code><div class="codex-docstring"><p>Find a minimum of <code>function</code> using simulated annealing
-algorithm. The function must take a list of <code>single-float</code> numbers
-and return a <code>single-float</code> number, in other words this method does
+      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">simulated-annealing</code><code class="codex-lambda-list">(function start-point &amp;key (max-iterations most-positive-fixnum) (initial-temperature 1.0d0) (final-temperature *final-temperature*) (cooldown (exponential-cooldown 0.999d0)) (next (normal-neighborhood 1.0d0)))</code><div class="codex-docstring"><p>Find a minimum of <code>function</code> using simulated annealing
+algorithm. The function must take a list of <code>double-float</code> numbers
+and return a <code>double-float</code> number, in other words this method does
 not require the function to be differentiable. <code>start-point</code> is a
-list of <code>single-float</code> numbers which serves as a starting point for
+list of <code>double-float</code> numbers which serves as a starting point for
 a search. The algorithm exists when either the number of iterations
 exceeds <code>max-iterations</code> or the temperature drops below
 <code>final-temperature</code>.<code>cooldown</code> may be used to explicitly specify a cooldown
 schedule. The cooldown schedule must be a function which takes the
 current temperature and value of <code>function</code> at the current point and
 returns new temperature.<code>next</code> is a function which takes a point in optimization space (as a
-list of single float numbers) and returns a new point as a new
+list of double float numbers) and returns a new point as a new
 candidate for a minimum.</p><p>This function returns the found minimum and an object of type
 <code>simulated-annealing-summary</code> which contains some statistics like a
 total number of iterations, the final temperature and so on.</p></div></div>

@@ -74,18 +74,11 @@
   (:export #:polynomial))
 (in-package :polynomial)
 
-(defun gen-reduce (function initial-value generator)
-  (labels ((reduce% (acc)
-             (let ((value (funcall generator)))
-               (if (eq value 'generator-stop) acc
-                   (reduce% (funcall function acc value))))))
-    (reduce% initial-value)))
-
 (-&gt; polynomial (list dual)(values dual &amp;optional))
 (defun polynomial (coeffs x)
   (declare (type dual x))
-  (gen-reduce
-   #'+ 0
+  (reduce-generator
+   #'+
    (imap (lambda (c n)
            (* c (expt x n)))
          (list-&gt;generator coeffs)
@@ -98,19 +91,19 @@
       evaluate some polynomial, let it be <code>f(x) = 1 + 2x + 3x<sup>2</sup></code> at the
       point <code>x</code>(let <code>x = 2</code>) along with its first derivative <code>f'(x) = 2 +
       6x</code> like this:
-      </p><pre><code class="repl">CL-USER&gt; (polynomial:polynomial '(1 2 3) #d(2.0 1.0))
-#D(17.0 14.0)
+      </p><pre><code class="repl">CL-USER&gt; (polynomial:polynomial '(1 2 3) #d(2d0 1d0))
+#&lt;SIMD-PACK 1.7000000000000d+1 1.4000000000000d+1&gt;
       </code></pre><p>
       The type <code>dual</code> is implemented as a structure which has two slots for
-      single float numbers, so all calculations are performed with single
+      double float numbers, so all calculations are performed with double
       precision.</p><p>      Now when we have this function, <code>polynomial</code>, we want to find the
       minimum of our polynomial f(x). We can use the simplest gradient descent
       algorithm for this purpose. Try the following code in the REPL:
       </p><pre><code class="repl">CL-USER&gt; (cl-optim:gradient-descent
           (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
                               #'first)
-          '(10.0))
-(-0.33316675)
+          '(10d0))
+(-0.3331667786236352d0)
 3673
       </code></pre><p>
       The first argument of <code>gradient-descent</code> is a function to be
@@ -118,15 +111,15 @@
       return a dual number. We must compose partially applied <code>polynomial</code>
       with <code>first</code> because the second argument of <code>polynomial</code> is of type
       <code>dual</code>, not <code>list</code>. The second argument is a starting point for a
-      search. It is a list of single floats of the same length <code>n</code>. Because
+      search. It is a list of double floats of the same length <code>n</code>. Because
       our function is convex, just every starting point will do.</p><p>      The first returned value is the found minimum and the second is the number
       of steps required to find that minimum. You can use a better algorithm to
       reduce the number of steps:
       </p><pre><code class="repl">CL-USER&gt; (cl-optim:nag
           (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
                               #'first)
-          '(10.0))
-(-0.33344847)
+          '(10d0))
+(-0.33344855804382767d0)
 139
       </code></pre><p>      Just another example of minimizing a function of two variables (Rosenbrock
       function with parameters <code>a = 2</code> and <code>b = 100</code>).
@@ -145,34 +138,34 @@
        (* 100 (expt (- y (expt x 2)) 2)))))
       </code></pre><p>
       Evaluate in the REPL:
-      </p><pre><code class="repl">CL-USER&gt; (cl-optim:nag #'rosenbrock:rosenbrock '(-1.0 1.0)
-                       :η  1f-4
-                       :β1 0.99)
-(1.9975977 3.9903917)
-3218
+      </p><pre><code class="repl">CL-USER&gt; (cl-optim:nag #'rosenbrock:rosenbrock '(-1d0 1d0)
+                       :η  1d-4
+                       :β1 0.99d0)
+(1.9975950013447854d0 3.990380982511882d0)
+3217
       </code></pre><p>
       Here I overrided some default parameters <code>β1</code> and <code>η</code>. For more
       information see <a id="api" href="api.html" data-node="api">API</a> section.
    </p><p>   </p><h1 id="algorithms-which-work-without-gradient">Algorithms which work without gradient</h1><p>      Currently there is only one algorithm in <code>cl-optim</code> which can optimize
       non-differentiable functions: simulated annealing. The function you wish
-      to minimize must operate with <code>single-float</code> numbers, not with
+      to minimize must operate with <code>double-float</code> numbers, not with
       <code>dual</code>s. Take this function as an example.</p><p>      </p><pre><code class="lisp">(defun noise-sinc (x)
-  (declare (type single-float x))
+  (declare (type double-float x))
   ;; Here all math function are from CL package.
   (let ((x-shift (- x 4)))
-    (- (random 0.2)
-       (if (zerop x-shift) 1.0
+    (- (random 2d-1)
+       (if (zerop x-shift) 1d0
            (/ (sin (* 5 x-shift)) x-shift)))))
       </code></pre><p>      This is a <i>sinc</i> function subtracted from a random noise with a small
       amplitude. This function can not be differentiated due to this noise. Now
-      try this in the REPL:</p><p>      </p><pre><code class="repl">CL-USER&gt; (cl-optim:simulated-annealing (alexandria:compose #'noise-sinc #'first) '(15.0))
-(4.0212755)
+      try this in the REPL:</p><p>      </p><pre><code class="repl">CL-USER&gt; (cl-optim:simulated-annealing (alexandria:compose #'noise-sinc #'first) '(15d0))
+(4.0656966038580755d0)
 #S(CL-OPTIM:SIMULATED-ANNEALING-SUMMARY
-   :TEMPERATURE 9.9985475e-5
-   :ITERATIONS 288892
-   :MINIMIZING-STEPS 8361
-   :REJECTED-STEPS 279686)
-      </code></pre><p>      The minimum is around the point <code>(4.0)</code>. As you can see, this method
+   :TEMPERATURE 9.99734336301017d-5
+   :ITERATIONS 27764
+   :MINIMIZING-STEPS 8247
+   :REJECTED-STEPS 18558)
+      </code></pre><p>      The minimum is around the point <code>(4d0)</code>. As you can see, this method
       does a big amount of evaluations of the function, but it does not require
       the function to be differentiable.
    </p><p>

@@ -51,10 +51,7 @@
         <p>
    </p><ul><li>Do not forgot to use <code>optimize (speed 3)</code> declaration in functions
    which may be a bottleneck. Though not as smart as with ordinary math
-   functions, SBCL can produce nice assembly code when optimizing for speed.</li><li>You can add <code>:single-float-tran</code> to <code>*features*</code> before loading
-   <code>cl-optim</code> if you use SBCL. This way SBCL will know about mathematical
-   functions from <code>libm</code> which work with single precision floats, like
-   <code>sinf</code>, <code>cosf</code>, etc.</li><li>Remember, the gradient-based algorithms are not guarateed to find the
+   functions, SBCL can produce nice assembly code when optimizing for speed.</li><li>Remember, the gradient-based algorithms are not guarateed to find the
    <i>global</i> minimum. Indeed, the minimum they find depends on various
    parameters: the starting point, the fricton and so on. If the function you
    want to minimize is convex, you will find a global minimum. On the contrary,
