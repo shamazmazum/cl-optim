@@ -20,8 +20,9 @@
      (loop repeat 10 do
           (multiple-value-bind (x iter)
               (funcall optimizer #'paraboloid
-                       (list (random 10d0)
-                             (random 10d0)))
+                       (to-doubles
+                        (list (random 10d0)
+                              (random 10d0))))
             (is (< iter *max-iterations*))
             (is (closep x '(0 0))))))
    (list #'gradient-descent
@@ -36,8 +37,9 @@
      (loop repeat 10 do
           (multiple-value-bind (x iter)
               (funcall optimizer #'booth
-                       (list (- (random 10d0) 5d0)
-                             (- (random 10d0) 5d0)))
+                       (to-doubles
+                        (list (- (random 10d0) 5d0)
+                              (- (random 10d0) 5d0))))
             (is (< iter *max-iterations*))
             (is (closep x '(1 3))))))
    (list #'gradient-descent-momentum
@@ -52,8 +54,9 @@
           (multiple-value-bind (x iter)
               (funcall optimizer
                        #'rosenbrock
-                       (list (- (random 4d0) 2d0)
-                             (- (random 4d0) 2d0)))
+                       (to-doubles
+                        (list (- (random 4d0) 2d0)
+                              (- (random 4d0) 2d0))))
             (is (< iter 100000))
             (is (closep x '(2 4))))))
    (list
@@ -72,8 +75,8 @@
 (test opt-hills
   (loop repeat 10 do
        (multiple-value-bind (x iter)
-           (nag (alexandria:compose #'hills #'car)
-                (list (+ (random 4d0) 11d0))
+           (nag (alexandria:compose #'hills (alexandria:rcurry #'aref 0))
+                (to-doubles (list (+ (random 4d0) 11d0)))
                 :η  1d-3
                 :β1 0.95d0)
          (is (< iter *max-iterations*))
@@ -85,7 +88,7 @@
         nil
         (loop repeat 10 collect
              (let ((opt (simulated-annealing
-                         (alexandria:compose #'noise-sinc #'first)
-                         '(10d0))))
+                         (alexandria:compose #'noise-sinc (alexandria:rcurry #'aref 0))
+                         (to-doubles '(10d0)))))
                (closep opt '(4d0) 0.15d0))))
        2)))

@@ -1,6 +1,6 @@
 (defsystem :cl-optim
   :name :cl-optim
-  :version "0.2"
+  :version "0.3"
   :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
   :description "Optimization of differentiable functions in CL"
   :licence "2-clause BSD"
@@ -18,7 +18,7 @@
 
 (defsystem :cl-optim/tests
   :name :cl-optim/tests
-  :version "0.2"
+  :version "0.3"
   :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
   :licence "2-clause BSD"
   :pathname "tests"
@@ -26,4 +26,4 @@
   :components ((:file "packages")
                (:file "functions")
                (:file "tests"))
-  :depends-on (:fiveam :alexandria :cl-optim))
+  :depends-on (:fiveam :cl-optim))

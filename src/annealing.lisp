@@ -49,11 +49,11 @@ adding a vector of independent random values with distribution
 @c(N(0, σ)) to the current candidate."
   (declare (optimize (speed 3)))
   (lambda (xs)
-    (mapcar
-     (lambda (x)
-       (declare (type double-float x))
-       (+ x (normal 0d0 σ)))
-     xs)))
+    (declare (type (%vector double-float) xs))
+    (map '(vector double-float)
+         (lambda (x)
+           (+ x (normal 0d0 σ)))
+         xs)))
 
 ;; Cooldown schedules
 
@@ -79,10 +79,10 @@ temperature by a parameter @c(0 < λ < 1)"
                               (cooldown            (exponential-cooldown 0.999d0))
                               (next                (normal-neighborhood  1.0d0)))
   "Find a minimum of @c(function) using simulated annealing
-algorithm. The function must take a list of @c(double-float) numbers
+algorithm. The function must take a vector of @c(double-float) numbers
 and return a @c(double-float) number, in other words this method does
 not require the function to be differentiable. @c(start-point) is a
-list of @c(double-float) numbers which serves as a starting point for
+vector of @c(double-float) numbers which serves as a starting point for
 a search. The algorithm exists when either the number of iterations
 exceeds @c(max-iterations) or the temperature drops below
 @c(final-temperature).
@@ -93,7 +93,7 @@ current temperature and value of @c(function) at the current point and
 returns new temperature.
 
 @c(next) is a function which takes a point in optimization space (as a
-list of double float numbers) and returns a new point as a new
+vector of double float numbers) and returns a new point as a new
 candidate for a minimum.
 
 This function returns the found minimum and an object of type
