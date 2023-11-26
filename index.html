@@ -89,9 +89,9 @@
       declarations like <code>(declare (optimize (speed 3)))</code> can also result in
       better generated code.</p><p>      As you can see, differentiable functions operate not with usual numbers
       but with values of type <code>dual</code>(so called dual numbers). You can
-      evaluate some polynomial, let it be <code>f(x) = 1 + 2x + 3x<sup>2</sup></code> at the
-      point <code>x</code>(let <code>x = 2</code>) along with its first derivative <code>f'(x) = 2 +
-      6x</code> like this:
+      evaluate some polynomial, let it be \(f(x) = 1 + 2x + 3x^2\) at the
+      point \(x\)(let \(x = 2\)) along with its first derivative \(f'(x) = 2 +
+      6x\) like this:
       </p><pre><code class="repl">CL-USER&gt; (polynomial:polynomial '(1 2 3) #d(2d0 1d0))
 #&lt;SIMD-PACK 1.7000000000000d+1 1.4000000000000d+1&gt;
       </code></pre><p>
@@ -101,26 +101,26 @@
       minimum of our polynomial f(x). We can use the simplest gradient descent
       algorithm for this purpose. Try the following code in the REPL:
       </p><pre><code class="repl">CL-USER&gt; (cl-optim:gradient-descent
-          (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
-                              #'first)
-          '(10d0))
-(-0.3331667786236352d0)
+ (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
+                     (alexandria:rcurry #'aref 0))
+ (cl-forward-diff:to-doubles '(10)))
+#(-0.3331667786236352d0)
 3673
       </code></pre><p>
       The first argument of <code>gradient-descent</code> is a function to be
-      minimized. It takes a list of dual numbers (let its length be <code>n</code>) and
+      minimized. It takes a vector of dual numbers (let its length be <code>n</code>) and
       return a dual number. We must compose partially applied <code>polynomial</code>
-      with <code>first</code> because the second argument of <code>polynomial</code> is of type
-      <code>dual</code>, not <code>list</code>. The second argument is a starting point for a
-      search. It is a list of double floats of the same length <code>n</code>. Because
-      our function is convex, just every starting point will do.</p><p>      The first returned value is the found minimum and the second is the number
+      with <code>(lambda (xs)(aref xs 0))</code> because <code>polynomial</code> excepts a single
+      dual number, not a vector of duals. The second argument is a starting
+      point for a search. It is a vector of double floats of the same length
+      <code>n</code>. Because our function is convex, just every starting point will do.</p><p>      The first returned value is the found minimum and the second is the number
       of steps required to find that minimum. You can use a better algorithm to
       reduce the number of steps:
       </p><pre><code class="repl">CL-USER&gt; (cl-optim:nag
           (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
-                              #'first)
-          '(10d0))
-(-0.33344855804382767d0)
+                     (alexandria:rcurry #'aref 0))
+          '(10))
+#(-0.33344855804382767d0)
 139
       </code></pre><p>      Just another example of minimizing a function of two variables (Rosenbrock
       function with parameters <code>a = 2</code> and <code>b = 100</code>).
@@ -131,21 +131,22 @@
   (:export #:rosenbrock))
 (in-package :rosenbrock)
 
-(defun rosenbrock (list)
-  (destructuring-bind (x y)
-      list
-    (declare (type dual x y))
+(defun rosenbrock (xs)
+  (let ((x (aref xs 0))
+        (y (aref xs 1)))
     (+ (expt (- 2 x) 2)
        (* 100 (expt (- y (expt x 2)) 2)))))
       </code></pre><p>
       Evaluate in the REPL:
-      </p><pre><code class="repl">CL-USER&gt; (cl-optim:nag #'rosenbrock:rosenbrock '(-1d0 1d0)
+      </p><pre><code class="repl">CL-USER&gt; (cl-optim:nag #'rosenbrock:rosenbrock
+                       (cl-forward-diff:to-doubles '(-1 1))
                        :η  1d-4
+                       :ε  1d-5
                        :β1 0.99d0)
-(1.9975950013447854d0 3.990380982511882d0)
-3217
+#(1.999993247190274d0 3.9999729695129296d0)
+5275
       </code></pre><p>
-      Here I overrided some default parameters <code>β1</code> and <code>η</code>. For more
+      Here I overrided some default parameters <code>β1</code>, <code>ε</code> and <code>η</code>. For more
       information see <a id="api" href="api.html" data-node="api">API</a> section.
    </p><p>   </p><h1 id="algorithms-which-work-without-gradient">Algorithms which work without gradient</h1><p>      Currently there is only one algorithm in <code>cl-optim</code> which can optimize
       non-differentiable functions: simulated annealing. The function you wish
@@ -159,8 +160,11 @@
            (/ (sin (* 5 x-shift)) x-shift)))))
       </code></pre><p>      This is a <i>sinc</i> function subtracted from a random noise with a small
       amplitude. This function can not be differentiated due to this noise. Now
-      try this in the REPL:</p><p>      </p><pre><code class="repl">CL-USER&gt; (cl-optim:simulated-annealing (alexandria:compose #'noise-sinc #'first) '(15d0))
-(4.0656966038580755d0)
+      try this in the REPL:</p><p>      </p><pre><code class="repl">CL-USER&gt; (cl-optim:simulated-annealing
+          (alexandria:compose #'noise-sinc
+                              (alexandria:rcurry #'aref 0))
+          (cl-forward-diff:to-doubles '(15)))
+#(4.0656966038580755d0)
 #S(CL-OPTIM:SIMULATED-ANNEALING-SUMMARY
    :TEMPERATURE 9.99734336301017d-5
    :ITERATIONS 27764
