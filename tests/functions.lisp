@@ -4,10 +4,14 @@
 (declaim (ftype differentiable-multivariate rosenbrock))
 (defun rosenbrock (xs)
   (declare (optimize (speed 3)))
-  (let ((x (aref xs 0))
-        (y (aref xs 1)))
-    (+ (expt (- 2 x) 2)
-       (* 100 (expt (- y (expt x 2)) 2)))))
+  (si:foldl #'+ #d(0d0 0d0)
+            (si:imap
+             (lambda (i)
+               (+ (* 100 (expt (- (aref xs (cl:1+ i))
+                                  (expt (aref xs i) 2))
+                               2))
+                  (expt (- 1 (aref xs i)) 2)))
+             (si:range 0 (cl:1- (length xs))))))
 
 (declaim (ftype differentiable-multivariate paraboloid))
 (defun paraboloid (xs)

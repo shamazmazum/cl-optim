@@ -5,6 +5,7 @@
                 #:differentiable-multivariate
                 #:differentiable-univariate)
   #.(cl-forward-diff:shadowing-import-math)
+  (:local-nicknames (#:si #:stateless-iterators))
   (:export #:rosenbrock
            #:paraboloid
            #:booth

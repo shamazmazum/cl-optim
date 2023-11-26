@@ -58,7 +58,7 @@
                         (list (- (random 4d0) 2d0)
                               (- (random 4d0) 2d0))))
             (is (< iter 100000))
-            (is (closep x '(2 4))))))
+            (is (closep x '(1 1))))))
    (list
     (lambda (fn x)
       (nag fn x
@@ -92,3 +92,15 @@
                          (to-doubles '(10d0)))))
                (closep opt '(4d0) 0.15d0))))
        2)))
+
+;; Failure rate no more than 20%
+(test bfgs
+  (is (> (loop with expected = (magicl:ones '(30))
+               repeat 100
+               for vector = (magicl:.- (magicl:scale (magicl:rand '(30)) 40) 20)
+               count
+               (ignore-errors
+                 (< (magicl:norm
+                     (magicl:.- (bfgs #'rosenbrock vector) expected))
+                    1d-4)))
+         80)))

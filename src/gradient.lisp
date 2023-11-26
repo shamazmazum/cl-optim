@@ -34,7 +34,7 @@ gradient in algorithms with momentum.")
 
 ;; Gradient descent
 (sera:-> gradient-descent
-         (differentiable-multivariate
+         (diff:differentiable-multivariate
           (%vector double-float)
           &key (:η              alex:positive-double-float)
                (:ε              alex:positive-double-float)
@@ -61,7 +61,7 @@ less than @c(ε)."
   (labels ((descend (iteration x)
              (declare (type alex:non-negative-fixnum iteration)
                       (type (%vector double-float) x))
-             (let ((gradient (ad-multivariate function x)))
+             (let ((gradient (diff:ad-multivariate function x)))
                (if (or (= iteration max-iterations)
                        (every-magnitude-< gradient ε))
                    (values x iteration)
@@ -74,7 +74,7 @@ less than @c(ε)."
 
 ;; Gradient descent with momentum
 (sera:-> gradient-descent-momentum
-         (differentiable-multivariate
+         (diff:differentiable-multivariate
           (%vector double-float)
           &key (:η              alex:positive-double-float)
                (:ε              alex:positive-double-float)
@@ -99,7 +99,7 @@ momentum component is less than @c(ε)."
   (labels ((descend (iteration x momentum)
              (declare (type alex:non-negative-fixnum iteration)
                       (type (%vector double-float) x momentum))
-             (let ((gradient (ad-multivariate function x)))
+             (let ((gradient (diff:ad-multivariate function x)))
                (if (or (= iteration max-iterations)
                        (and
                         (every-magnitude-< gradient ε)
@@ -117,7 +117,7 @@ momentum component is less than @c(ε)."
 
 ;; NAG
 (sera:-> nag
-         (differentiable-multivariate
+         (diff:differentiable-multivariate
           (%vector double-float)
           &key (:η              alex:positive-double-float)
                (:ε              alex:positive-double-float)
@@ -139,14 +139,14 @@ Exit criterion is the same as in @c(gradient-descent-momentum)."
   (labels ((descend (iteration x momentum)
              (declare (type alex:non-negative-fixnum iteration)
                       (type (%vector double-float) x momentum))
-             (let ((gradient (ad-multivariate function x)))
+             (let ((gradient (diff:ad-multivariate function x)))
                (if (or (= iteration max-iterations)
                        (and
                         (every-magnitude-< gradient ε)
                         (every-magnitude-< momentum ε)))
                    (values x iteration)
                    (let ((gradient-look-ahead
-                          (ad-multivariate
+                          (diff:ad-multivariate
                            function (map '(vector double-float)
                                          (lambda (x m)
                                            (- x (* β1 m)))
@@ -163,7 +163,7 @@ Exit criterion is the same as in @c(gradient-descent-momentum)."
 
 ;; Adam
 (sera:-> adam
-         (differentiable-multivariate
+         (diff:differentiable-multivariate
           (%vector double-float)
           &key (:η              alex:positive-double-float)
                (:ε              alex:positive-double-float)
@@ -196,7 +196,7 @@ Exit criterion is the same as in @c(gradient-descent-momentum)."
            (descend (iteration x momentum momentum2)
              (declare (type alex:non-negative-fixnum iteration)
                       (type (%vector double-float) x momentum momentum2))
-             (let ((gradient (ad-multivariate function x)))
+             (let ((gradient (diff:ad-multivariate function x)))
                (if (or (= iteration max-iterations)
                        (and
                         (every-magnitude-< gradient ε)

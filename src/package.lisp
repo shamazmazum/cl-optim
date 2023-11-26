@@ -1,16 +1,17 @@
 (defpackage cl-optim
   (:use #:cl)
-  (:local-nicknames (:sera :serapeum)
-                    (:alex :alexandria))
-  (:import-from
-   #:cl-forward-diff
-   #:dual #:differentiable-multivariate #:ad-multivariate)
+  (:local-nicknames (#:sera #:serapeum)
+                    (#:diff #:cl-forward-diff)
+                    (#:alex #:alexandria))
   (:export
    ;; Gradient based
    #:gradient-descent
    #:gradient-descent-momentum
    #:nag
    #:adam
+
+   ;; Gradient based with Hessian approximation
+   #:bfgs #:backtracking-options
 
    ;; Heuristics
    #:simulated-annealing

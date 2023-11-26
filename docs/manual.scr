@@ -167,6 +167,11 @@ CL-USER> (cl-optim:simulated-annealing
       @cl:doc(function nag)
       @cl:doc(function adam)
    )
+   @u(Gradient-based algorithms with Hessian approximation)
+   @cl:with-package[name="cl-optim"](
+      @cl:doc(function bfgs)
+      @cl:doc(function backtracking-options)
+   )
    @u(Heuristics)
    @cl:with-package[name="cl-optim"](
       @cl:doc(function simulated-annealing)
@@ -181,6 +186,7 @@ CL-USER> (cl-optim:simulated-annealing
       @cl:doc(variable *β2*)
       @cl:doc(variable *max-iterations*)
       @cl:doc(variable *final-temperature*)
+      @cl:doc(variable *default-backtracking-options*)
    )
 @end(section)
 
@@ -224,50 +230,89 @@ CL-USER> (cl-optim:simulated-annealing
  x + 3y + 2z + 4w = 28
  x + 5y + z  +  w = 23
       @end(code)
-      or @c(Au = v) in matrix form where @c(v) is a column containing the right
-      hand of the equations and @c(A) is a 4x4 matrix containing coefficients of
-      the equations. The solution @c(u) minimizes the cost function
-      @c(Σ@sub(k)(Au - v)@sub(k)@sup(2)). The code for the cost function is
-      the following:
+      or \(Au = v\) in the matrix form where \(v\) is a column containing the
+      right hand of the system and \(A\) is a 4x4 matrix containing coefficients
+      on the left. The solution \(u\) minimizes the cost function \(\sum_k (Au -
+      v_k)^2\). The code for the cost function is the following (requires
+      @c(array-operations) library):
       @begin[lang=lisp](code)
 (defpackage linear-system
   (:use #:cl)
+  (:local-nicknames (#:sera #:serapeum)
+                    (#:diff #:cl-forward-diff))
   #.(cl-forward-diff:shadowing-import-math)
-  (:export #:linear-system-cost))
+  (:export #:linear-system-cost #:%make-array))
 (in-package :linear-system)
 
+(sera:-> matrix-vector-mul
+         ((simple-array diff:dual (cl:* cl:*))
+          (simple-array diff:dual (cl:*)))
+         (values (simple-array diff:dual (cl:*)) &optional))
 (defun matrix-vector-mul (mat vec)
   "Multiply a matrix MAT by a column VEC"
-  (mapcar
-   (lambda (row)
-     (reduce #'+ (mapcar #'* row vec)))
-   mat))
+  (aops:each-index* 'diff:dual i
+      (aops:reduce-index #'+ j
+          (* (aref mat i j) (aref vec j)))))
 
+(sera:-> linear-system-cost
+         ((simple-array diff:dual (cl:* cl:*))
+          (simple-array diff:dual (cl:*))
+          (simple-array diff:dual (cl:*)))
+         (values diff:dual &optional))
 (defun linear-system-cost (mat v u)
   "Calculate a cost function for a system of linear equations MAT*X=V at the
   point X=U"
   (let ((val (matrix-vector-mul mat u)))
     (reduce
-     #'+ (mapcar
-          (lambda (v v%)
-            (expt (- v v%) 2))
-          v val))))
+     #'+ (map '(vector diff:dual)
+              (lambda (v1 v2)
+                (expt (- v1 v2) 2))
+              v val))))
+
+(defun %make-array (list shape)
+  "Helper function to convert lists to arrays of dual numbers"
+  (labels ((to-dual (list)
+             (mapcar (lambda (x)
+                       (if (listp x) (to-dual x)
+                           (diff:make-dual (float x 0d0))))
+                     list)))
+    (make-array shape
+                :element-type     'diff:dual
+                :initial-contents (to-dual list))))
       @end(code)
 
       Now evaluate the following code in the REPL:
       @begin[lang=lisp](code)
-(cl-optim:nag
+(cl-optim:bfgs
  (alexandria:curry #'linear-system:linear-system-cost
-                   '((1 2 1 3)
-                     (2 1 1 1)
-                     (1 3 2 4)
-                     (1 5 1 1))
-                   '(18 12 28 23))
- '(0d0 0d0 0d0 0d0)
- :β1 0.99d0)
+                   (linear-system:%make-array
+                    '((1 2 1 3)
+                      (2 1 1 1)
+                      (1 3 2 4)
+                      (1 5 1 1))
+                    '(4 4))
+                   (linear-system:%make-array
+                    '(18 12 28 23)
+                    '(4)))
+ (magicl:zeros '(4)))
       @end(code)
 
-      The answer is @c((1.0002765751873173d0 3.0000372148287466d0 4.999420273764028d0  2.000141438374246d0))
-      which is calculated in 1677 steps.
+      The answer is
+      @begin[lang=lisp](code)
+#<MAGICL:VECTOR/DOUBLE-FLOAT (4):
+   1.000
+   3.000
+   5.000
+   2.000>
+#<MAGICL:MATRIX/DOUBLE-FLOAT (4x4):
+  14.000    24.000    12.000    20.000
+  24.000    77.993    28.000    48.002
+  12.000    28.000    14.000    26.000
+  20.000    48.002    26.000    53.998>
+7
+      @end(code)
+      The first value is the minimizer of @c(linear-system-cost): \((1, 3, 5,
+      2)\). The second value is Hessian of the cost function at \(x\). The last
+      value is a number of iterations needed to minimize the cost function.
    @end(section)
 @end(section)
