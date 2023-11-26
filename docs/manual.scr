@@ -45,9 +45,9 @@
 
       As you can see, differentiable functions operate not with usual numbers
       but with values of type @c(dual) (so called dual numbers). You can
-      evaluate some polynomial, let it be @c(f(x) = 1 + 2x + 3x@sup(2)) at the
-      point @c(x) (let @c(x = 2)) along with its first derivative @c(f'(x) = 2 +
-      6x) like this:
+      evaluate some polynomial, let it be \(f(x) = 1 + 2x + 3x^2\) at the
+      point \(x\) (let \(x = 2\)) along with its first derivative \(f'(x) = 2 +
+      6x\) like this:
       @begin[lang=repl](code)
 CL-USER> (polynomial:polynomial '(1 2 3) #d(2d0 1d0))
 #<SIMD-PACK 1.7000000000000d+1 1.4000000000000d+1>
@@ -61,19 +61,19 @@ CL-USER> (polynomial:polynomial '(1 2 3) #d(2d0 1d0))
       algorithm for this purpose. Try the following code in the REPL:
       @begin[lang=repl](code)
 CL-USER> (cl-optim:gradient-descent
-          (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
-                              #'first)
-          '(10d0))
-(-0.3331667786236352d0)
+ (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
+                     (alexandria:rcurry #'aref 0))
+ (cl-forward-diff:to-doubles '(10)))
+#(-0.3331667786236352d0)
 3673
       @end(code)
       The first argument of @c(gradient-descent) is a function to be
-      minimized. It takes a list of dual numbers (let its length be @c(n)) and
+      minimized. It takes a vector of dual numbers (let its length be @c(n)) and
       return a dual number. We must compose partially applied @c(polynomial)
-      with @c(first) because the second argument of @c(polynomial) is of type
-      @c(dual), not @c(list). The second argument is a starting point for a
-      search. It is a list of double floats of the same length @c(n). Because
-      our function is convex, just every starting point will do.
+      with @c((lambda (xs) (aref xs 0))) because @c(polynomial) excepts a single
+      dual number, not a vector of duals. The second argument is a starting
+      point for a search. It is a vector of double floats of the same length
+      @c(n). Because our function is convex, just every starting point will do.
 
       The first returned value is the found minimum and the second is the number
       of steps required to find that minimum. You can use a better algorithm to
@@ -81,9 +81,9 @@ CL-USER> (cl-optim:gradient-descent
       @begin[lang=repl](code)
 CL-USER> (cl-optim:nag
           (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
-                              #'first)
-          '(10d0))
-(-0.33344855804382767d0)
+                     (alexandria:rcurry #'aref 0))
+          '(10))
+#(-0.33344855804382767d0)
 139
       @end(code)
 
@@ -97,22 +97,23 @@ CL-USER> (cl-optim:nag
   (:export #:rosenbrock))
 (in-package :rosenbrock)
 
-(defun rosenbrock (list)
-  (destructuring-bind (x y)
-      list
-    (declare (type dual x y))
+(defun rosenbrock (xs)
+  (let ((x (aref xs 0))
+        (y (aref xs 1)))
     (+ (expt (- 2 x) 2)
        (* 100 (expt (- y (expt x 2)) 2)))))
       @end(code)
       Evaluate in the REPL:
       @begin[lang=repl](code)
-CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1d0 1d0)
+CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock
+                       (cl-forward-diff:to-doubles '(-1 1))
                        :η  1d-4
+                       :ε  1d-5
                        :β1 0.99d0)
-(1.9975950013447854d0 3.990380982511882d0)
-3217
+#(1.999993247190274d0 3.9999729695129296d0)
+5275
       @end(code)
-      Here I overrided some default parameters @c(β1) and @c(η). For more
+      Here I overrided some default parameters @c(β1), @c(ε) and @c(η). For more
       information see @ref[id=api](API) section.
    @end(section)
 
@@ -139,8 +140,11 @@ CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock '(-1d0 1d0)
       try this in the REPL:
 
       @begin[lang=repl](code)
-CL-USER> (cl-optim:simulated-annealing (alexandria:compose #'noise-sinc #'first) '(15d0))
-(4.0656966038580755d0)
+CL-USER> (cl-optim:simulated-annealing
+          (alexandria:compose #'noise-sinc
+                              (alexandria:rcurry #'aref 0))
+          (cl-forward-diff:to-doubles '(15)))
+#(4.0656966038580755d0)
 #S(CL-OPTIM:SIMULATED-ANNEALING-SUMMARY
    :TEMPERATURE 9.99734336301017d-5
    :ITERATIONS 27764
