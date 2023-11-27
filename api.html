@@ -72,6 +72,17 @@ in calculation of the second momentum of the gradient. For a
 description of other parameters see <code>gradient-descent</code> and
 <code>gradient-descent-momentum</code>.</p><p>Exit criterion is the same as in <code>gradient-descent-momentum</code>.</p></div></div>
    
+   <u>Gradient-based algorithms with Hessian approximation</u>
+   
+      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">bfgs</code><code class="codex-lambda-list">(function initial-approximation &amp;key (backtracking-options *default-backtracking-options*) (ε 1.0d-6) (max-steps 10000))</code><div class="codex-docstring">Minimize a function using BFGS with backtracking line search
+algorithm. <code>Function</code> is a differentiable function to be minimized
+and <code>initial-approximation</code> is a MAGICL vector which contains a
+starting point for the search. The search stops when either the number
+of steps exceeds <code>max-steps</code> or L²-norm of the gradient is below
+<code>ε</code>. This function returns a vector which minimizes <code>function</code>, an
+approximation of Hessian at this point and a total number of steps.</div></div>
+      <div class="codex-error codex-no-node">No node with name <code>backtracking-options</code>.</div>
+   
    <u>Heuristics</u>
    
       <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">simulated-annealing</code><code class="codex-lambda-list">(function start-point &amp;key (max-iterations most-positive-fixnum) (initial-temperature 1.0d0) (final-temperature *final-temperature*) (cooldown (exponential-cooldown 0.999d0)) (next (normal-neighborhood 1.0d0)))</code><div class="codex-docstring"><p>Find a minimum of <code>function</code> using simulated annealing
@@ -105,6 +116,7 @@ gradient in algorithms with momentum.</div></div>
 gradient in Adam.</div></div>
       <div class="codex-doc-node codex-variable"><code class="codex-name">*max-iterations*</code><div class="codex-docstring">Maximal allowed number of iterations.</div></div>
       <div class="codex-doc-node codex-variable"><code class="codex-name">*final-temperature*</code><div class="codex-docstring">Final temperature for the simulated annealing method</div></div>
+      <div class="codex-doc-node codex-variable"><code class="codex-name">*default-backtracking-options*</code><div class="codex-docstring">Default options for the backtracking line search algorithm.</div></div>
    
 
       </div>

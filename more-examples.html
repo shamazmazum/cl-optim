@@ -55,45 +55,83 @@
  x + 3y + 2z + 4w = 28
  x + 5y + z  +  w = 23
       </code></pre><p>
-      or <code>Au = v</code> in matrix form where <code>v</code> is a column containing the right
-      hand of the equations and <code>A</code> is a 4x4 matrix containing coefficients of
-      the equations. The solution <code>u</code> minimizes the cost function
-      <code>Σ<sub>k</sub>(Au - v)<sub>k</sub><sup>2</sup></code>. The code for the cost function is
-      the following:
+      or \(Au = v\) in the matrix form where \(v\) is a column containing the
+      right hand of the system and \(A\) is a 4x4 matrix containing coefficients
+      on the left. The solution \(u\) minimizes the cost function \(\sum_k (Au -
+      v_k)^2\). The code for the cost function is the following (requires
+      <code>array-operations</code> library):
       </p><pre><code class="lisp">(defpackage linear-system
   (:use #:cl)
+  (:local-nicknames (#:sera #:serapeum)
+                    (#:diff #:cl-forward-diff))
   #.(cl-forward-diff:shadowing-import-math)
-  (:export #:linear-system-cost))
+  (:export #:linear-system-cost #:%make-array))
 (in-package :linear-system)
 
+(sera:-&gt; matrix-vector-mul
+         ((simple-array diff:dual (cl:* cl:*))
+          (simple-array diff:dual (cl:*)))
+         (values (simple-array diff:dual (cl:*)) &amp;optional))
 (defun matrix-vector-mul (mat vec)
   &quot;Multiply a matrix MAT by a column VEC&quot;
-  (mapcar
-   (lambda (row)
-     (reduce #'+ (mapcar #'* row vec)))
-   mat))
+  (aops:each-index* 'diff:dual i
+      (aops:reduce-index #'+ j
+          (* (aref mat i j)(aref vec j)))))
 
+(sera:-&gt; linear-system-cost
+         ((simple-array diff:dual (cl:* cl:*))
+          (simple-array diff:dual (cl:*))
+          (simple-array diff:dual (cl:*)))
+         (values diff:dual &amp;optional))
 (defun linear-system-cost (mat v u)
   &quot;Calculate a cost function for a system of linear equations MAT*X=V at the
   point X=U&quot;
   (let ((val (matrix-vector-mul mat u)))
     (reduce
-     #'+ (mapcar
-          (lambda (v v%)
-            (expt (- v v%) 2))
-          v val))))
+     #'+ (map '(vector diff:dual)
+              (lambda (v1 v2)
+                (expt (- v1 v2) 2))
+              v val))))
+
+(defun %make-array (list shape)
+  &quot;Helper function to convert lists to arrays of dual numbers&quot;
+  (labels ((to-dual (list)
+             (mapcar (lambda (x)
+                       (if (listp x)(to-dual x)
+                           (diff:make-dual (float x 0d0))))
+                     list)))
+    (make-array shape
+                :element-type     'diff:dual
+                :initial-contents (to-dual list))))
       </code></pre><p>      Now evaluate the following code in the REPL:
-      </p><pre><code class="lisp">(cl-optim:nag
+      </p><pre><code class="lisp">(cl-optim:bfgs
  (alexandria:curry #'linear-system:linear-system-cost
-                   '((1 2 1 3)
-                     (2 1 1 1)
-                     (1 3 2 4)
-                     (1 5 1 1))
-                   '(18 12 28 23))
- '(0d0 0d0 0d0 0d0)
- :β1 0.99d0)
-      </code></pre><p>      The answer is <code>(1.0002765751873173d0 3.0000372148287466d0 4.999420273764028d0  2.000141438374246d0)</code>
-      which is calculated in 1677 steps.
+                   (linear-system:%make-array
+                    '((1 2 1 3)
+                      (2 1 1 1)
+                      (1 3 2 4)
+                      (1 5 1 1))
+                    '(4 4))
+                   (linear-system:%make-array
+                    '(18 12 28 23)
+                    '(4)))
+ (magicl:zeros '(4)))
+      </code></pre><p>      The answer is
+      </p><pre><code class="lisp">#&lt;MAGICL:VECTOR/DOUBLE-FLOAT (4):
+   1.000
+   3.000
+   5.000
+   2.000&gt;
+#&lt;MAGICL:MATRIX/DOUBLE-FLOAT (4x4):
+  14.000    24.000    12.000    20.000
+  24.000    77.993    28.000    48.002
+  12.000    28.000    14.000    26.000
+  20.000    48.002    26.000    53.998&gt;
+7
+      </code></pre><p>
+      The first value is the minimizer of <code>linear-system-cost</code>: \((1, 3, 5,
+      2)\). The second value is Hessian of the cost function at \(x\). The last
+      value is a number of iterations needed to minimize the cost function.
    </p><p>
 </p>
       </div>
