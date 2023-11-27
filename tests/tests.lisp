@@ -99,8 +99,7 @@
                repeat 100
                for vector = (magicl:.- (magicl:scale (magicl:rand '(30)) 40) 20)
                count
-               (ignore-errors
-                 (< (magicl:norm
-                     (magicl:.- (bfgs #'rosenbrock vector) expected))
-                    1d-4)))
+               (< (magicl:norm
+                   (magicl:.- (bfgs #'rosenbrock vector) expected))
+                  1d-4))
          80)))

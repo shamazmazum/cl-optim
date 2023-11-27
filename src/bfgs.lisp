@@ -63,7 +63,7 @@ at each iteraction. @c(C) is a constant in Armijo rule. @c(MAX-STEPS)
 is a maximal number of steps in the backtracking search.")
 
 (defparameter *default-backtracking-options*
-  (backtracking-options 1d0 9d-1 5d-1 1000)
+  (backtracking-options 1d0 9d-1 5d-1 120)
   "Default options for the backtracking line search algorithm.")
 
 (sera:-> backtracking-search
