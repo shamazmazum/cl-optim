@@ -104,7 +104,7 @@
                 :element-type     'diff:dual
                 :initial-contents (to-dual list))))
       </code></pre><p>      Now evaluate the following code in the REPL:
-      </p><pre><code class="lisp">(cl-optim:bfgs
+      </p><pre><code class="lisp">(cl-optim:bfgs/magicl
  (alexandria:curry #'linear-system:linear-system-cost
                    (linear-system:%make-array
                     '((1 2 1 3)

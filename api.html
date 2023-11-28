@@ -74,7 +74,9 @@ description of other parameters see <code>gradient-descent</code> and
    
    <u>Gradient-based algorithms with Hessian approximation</u>
    
-      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">bfgs</code><code class="codex-lambda-list">(function initial-approximation &amp;key (backtracking-options *default-backtracking-options*) (ε 1.0d-6) (max-steps 10000))</code><div class="codex-docstring">Minimize a function using BFGS with backtracking line search
+      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">bfgs</code><code class="codex-lambda-list">(function initial-approximation &amp;key (backtracking-options *default-backtracking-options*) (ε 1.0d-6) (max-steps 10000))</code><div class="codex-docstring">BFGS variant which works with native Common Lisp arrays. See
+<code>bfgs/magicl</code> for detailed documentation.</div></div>
+      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">bfgs/magicl</code><code class="codex-lambda-list">(function initial-approximation &amp;key (backtracking-options *default-backtracking-options*) (ε 1.0d-6) (max-steps 10000))</code><div class="codex-docstring">Minimize a function using BFGS with backtracking line search
 algorithm. <code>Function</code> is a differentiable function to be minimized
 and <code>initial-approximation</code> is a MAGICL vector which contains a
 starting point for the search. The search stops when either the number
