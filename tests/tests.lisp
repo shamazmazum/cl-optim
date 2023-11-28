@@ -100,6 +100,6 @@
                for vector = (magicl:.- (magicl:scale (magicl:rand '(30)) 40) 20)
                count
                (< (magicl:norm
-                   (magicl:.- (bfgs #'rosenbrock vector) expected))
+                   (magicl:.- (bfgs/magicl #'rosenbrock vector) expected))
                   1d-4))
          80)))

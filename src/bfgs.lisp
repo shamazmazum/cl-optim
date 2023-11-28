@@ -102,7 +102,7 @@ gradient and the search direction can be supplied in @c(dot)."
 
 
 ;; BFGS algorithm
-(sera:-> bfgs
+(sera:-> bfgs/magicl
          (diff:differentiable-multivariate
           magicl:vector/double-float
           &key
@@ -112,11 +112,11 @@ gradient and the search direction can be supplied in @c(dot)."
          (values magicl:vector/double-float
                  magicl:matrix/double-float
                  alex:non-negative-fixnum &optional))
-(defun bfgs (function initial-approximation
-             &key
-               (backtracking-options *default-backtracking-options*)
-               (ε 1d-6)
-               (max-steps 10000))
+(defun bfgs/magicl (function initial-approximation
+                    &key
+                      (backtracking-options *default-backtracking-options*)
+                      (ε 1d-6)
+                      (max-steps 10000))
   "Minimize a function using BFGS with backtracking line search
 algorithm. @c(Function) is a differentiable function to be minimized
 and @c(initial-approximation) is a MAGICL vector which contains a
@@ -162,3 +162,34 @@ approximation of Hessian at this point and a total number of steps."
 
                        (%iteration new-x (magicl:.+ h diff-h) (1+ step)))))))
       (%iteration initial-approximation id 0))))
+
+(sera:-> bfgs
+         (diff:differentiable-multivariate
+          (%vector double-float)
+          &key
+          (:ε double-float)
+          (:max-steps alex:positive-fixnum)
+          (:backtracking-options backtracking-options))
+         (values (%vector double-float)
+                 magicl:matrix/double-float
+                 alex:non-negative-fixnum &optional))
+(defun bfgs (function initial-approximation
+             &key
+               (backtracking-options *default-backtracking-options*)
+               (ε 1d-6)
+               (max-steps 10000))
+  "BFGS variant which works with native Common Lisp arrays. See
+@c(bfgs/magicl) for detailed documentation."
+  (declare (optimize (speed 3)))
+  (multiple-value-bind (min hessian steps)
+      (bfgs/magicl
+       function
+       (magicl:make-tensor 'magicl:vector/double-float
+                           (list (length initial-approximation))
+                           :storage initial-approximation)
+       :backtracking-options backtracking-options
+       :ε ε
+       :max-steps max-steps)
+    (values
+     (magicl::storage min)
+     hessian steps)))

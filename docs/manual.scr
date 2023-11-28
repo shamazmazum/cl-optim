@@ -170,6 +170,7 @@ CL-USER> (cl-optim:simulated-annealing
    @u(Gradient-based algorithms with Hessian approximation)
    @cl:with-package[name="cl-optim"](
       @cl:doc(function bfgs)
+      @cl:doc(function bfgs/magicl)
       @cl:doc(function backtracking-options)
    )
    @u(Heuristics)
@@ -283,7 +284,7 @@ CL-USER> (cl-optim:simulated-annealing
 
       Now evaluate the following code in the REPL:
       @begin[lang=lisp](code)
-(cl-optim:bfgs
+(cl-optim:bfgs/magicl
  (alexandria:curry #'linear-system:linear-system-cost
                    (linear-system:%make-array
                     '((1 2 1 3)

@@ -11,7 +11,7 @@
    #:adam
 
    ;; Gradient based with Hessian approximation
-   #:bfgs #:backtracking-options
+   #:bfgs #:bfgs/magicl #:backtracking-options
 
    ;; Heuristics
    #:simulated-annealing
