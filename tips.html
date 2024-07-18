@@ -42,7 +42,7 @@
   <h1 class="doc-title">cl-optim</h1>
   <article id="article" data-section="tips">
     <aside>
-      <ol class="toc"><li><a href="index.html" data-node="index">Manual</a><ol><li><a href="index.html#gradient-based-algorithms" data-node="gradient-based-algorithms">Gradient-based algorithms</a></li><li><a href="index.html#algorithms-which-work-without-gradient" data-node="algorithms-which-work-without-gradient">Algorithms which work without gradient</a></li></ol></li><li><a href="api.html" data-node="api">API</a></li><li><a href="tips.html" data-node="tips">Tips</a></li><li><a href="more-examples.html" data-node="more-examples">More examples</a><ol><li><a href="solving-a-system-of-linear-equations.html" data-node="solving-a-system-of-linear-equations">Solving a system of linear equations</a></li></ol></li></ol>
+      <ol class="toc"><li><a href="index.html" data-node="index">Manual</a><ol><li><a href="index.html#gradient-based-algorithms" data-node="gradient-based-algorithms">Gradient-based algorithms</a></li><li><a href="index.html#algorithms-which-work-without-gradient" data-node="algorithms-which-work-without-gradient">Algorithms which work without gradient</a></li><li><a href="index.html#linear-least-squares" data-node="linear-least-squares">Linear least squares</a></li></ol></li><li><a href="api.html" data-node="api">API</a></li><li><a href="tips.html" data-node="tips">Tips</a></li><li><a href="more-examples.html" data-node="more-examples">More examples</a><ol><li><a href="solving-a-system-of-linear-equations.html" data-node="solving-a-system-of-linear-equations">Solving a system of linear equations</a></li></ol></li></ol>
     </aside>
     <main class="codex-section">
       <header>
@@ -52,12 +52,7 @@
         <p>
    </p><ul><li>Do not forgot to use <code>optimize (speed 3)</code> declaration in functions
    which may be a bottleneck. Though not as smart as with ordinary math
-   functions, SBCL can produce nice assembly code when optimizing for speed.</li><li>Remember, the gradient-based algorithms are not guarateed to find the
-   <i>global</i> minimum. Indeed, the minimum they find depends on various
-   parameters: the starting point, the fricton and so on. If the function you
-   want to minimize is convex, you will find a global minimum. On the contrary,
-   the heuristic algorithms like simulated annealing try to find the global
-   minimum by design.</li><li>If you use Emacs with julia-mode, the lines at the end of this section
+   functions, SBCL can produce nice assembly code when optimizing for speed.</li><li>If you use Emacs with julia-mode, the lines at the end of this section
    added to <code>~/.emacs</code> will help you to type Greek symbols. For example, to
    type ε you need to type <code>\upepsilon</code> and press Tab.</li></ul><p>   </p><pre><code class="lisp">(defun indent-or-latexsub (arg)
   (interactive &quot;*i&quot;)

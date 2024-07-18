@@ -42,7 +42,7 @@
   <h1 class="doc-title">cl-optim</h1>
   <article id="article" data-section="api">
     <aside>
-      <ol class="toc"><li><a href="index.html" data-node="index">Manual</a><ol><li><a href="index.html#gradient-based-algorithms" data-node="gradient-based-algorithms">Gradient-based algorithms</a></li><li><a href="index.html#algorithms-which-work-without-gradient" data-node="algorithms-which-work-without-gradient">Algorithms which work without gradient</a></li></ol></li><li><a href="api.html" data-node="api">API</a></li><li><a href="tips.html" data-node="tips">Tips</a></li><li><a href="more-examples.html" data-node="more-examples">More examples</a><ol><li><a href="solving-a-system-of-linear-equations.html" data-node="solving-a-system-of-linear-equations">Solving a system of linear equations</a></li></ol></li></ol>
+      <ol class="toc"><li><a href="index.html" data-node="index">Manual</a><ol><li><a href="index.html#gradient-based-algorithms" data-node="gradient-based-algorithms">Gradient-based algorithms</a></li><li><a href="index.html#algorithms-which-work-without-gradient" data-node="algorithms-which-work-without-gradient">Algorithms which work without gradient</a></li><li><a href="index.html#linear-least-squares" data-node="linear-least-squares">Linear least squares</a></li></ol></li><li><a href="api.html" data-node="api">API</a></li><li><a href="tips.html" data-node="tips">Tips</a></li><li><a href="more-examples.html" data-node="more-examples">More examples</a><ol><li><a href="solving-a-system-of-linear-equations.html" data-node="solving-a-system-of-linear-equations">Solving a system of linear equations</a></li></ol></li></ol>
     </aside>
     <main class="codex-section">
       <header>
@@ -84,6 +84,12 @@ of steps exceeds <code>max-steps</code> or L²-norm of the gradient is below
 <code>ε</code>. This function returns a vector which minimizes <code>function</code>, an
 approximation of Hessian at this point and a total number of steps.</div></div>
       <div class="codex-error codex-no-node">No node with name <code>backtracking-options</code>.</div>
+   
+   <u>Least squares fit</u>
+   
+      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">linear-least-squares</code><code class="codex-lambda-list">(ys &amp;rest xs)</code><div class="codex-docstring"><p>Find \(\beta\) which minimizes the following expression:</p><p>\(|(Y - f(X_0, X_1, \dots))|^2\)</p><p>where \(f\) is</p><p>\(f(X_0, X_1, \dots) = X_0 \beta_0 + X_1 \beta_1 + \dots + \beta_N \)
+(\(N\) being the last element in the returned array).</p><p>Also the value of the target expression is returned as the second value.</p><p>All passed arrays must be of the same size. This function may signal
+SIMPLE-ERROR if they are too short.</p></div></div>
    
    <u>Heuristics</u>
    
