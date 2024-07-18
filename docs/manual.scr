@@ -156,6 +156,46 @@ CL-USER> (cl-optim:simulated-annealing
       does a big amount of evaluations of the function, but it does not require
       the function to be differentiable.
    @end(section)
+
+   @begin(section)
+   @title(Linear least squares)
+   You can solve linear least squares fit problem with @c(cl-optim). Suppose you
+   have a vector of arguments of some function (x'es) and function of values
+   (y's). You can approximate that function with a linear function like so:
+@begin[lang=lisp](code)
+CL-USER> (cl-optim:linear-least-squares
+          (cl-forward-diff:to-doubles '(1 2 3))
+          (cl-forward-diff:to-doubles '(1 2 4)))
+#(0.6428571428571426d0 0.4999999999999998d0)
+0.07142857142857147d0
+@end(code)
+
+   Your linear approximation is \(f(x) = 0.64 x + 0.5\). The second value is
+   the sum of squared differences between \(f(x)\) and supplied \(y\). When
+   a number of samples is 2, the second value is zero:
+@begin[lang=lisp](code)
+CL-USER> (cl-optim:linear-least-squares
+          (cl-forward-diff:to-doubles '(1 3))
+          (cl-forward-diff:to-doubles '(1 5)))
+#(0.5d0 0.5d0)
+0.0d0
+@end(code)
+   Indeed, \(1 \cdot \frac{1}{2} + \frac{1}{2} = 1\) and \(5 \cdot \frac{1}{2} +
+   \frac{1}{2} = 3\).
+
+   Multivariate problem can also be solved:
+@begin[lang=lisp](code)
+CL-USER> (cl-optim:linear-least-squares
+          (cl-forward-diff:to-doubles '(1 2 6))
+          (cl-forward-diff:to-doubles '(1 2 2))
+          (cl-forward-diff:to-doubles '(1 2 1)))
+#(4.9999999999999964d0 -3.999999999999991d0 -1.0658141036401503d-14)
+1.072850831100576d-28
+@end(code)
+   which corresponds to the function \(f(x_0, x_1) = 5 x_0 - 4 x_1\). Indeed, we
+   have \(5 \cdot 1 - 4 \cdot 1 = 1\), \(5 \cdot 2 - 4 \cdot 2 = 2\) and \(5
+   \cdot 2 - 4 \cdot 1 = 6\).
+   @end(section)
 @end(section)
 
 @begin[ref=api](section)
@@ -172,6 +212,10 @@ CL-USER> (cl-optim:simulated-annealing
       @cl:doc(function bfgs)
       @cl:doc(function bfgs/magicl)
       @cl:doc(function backtracking-options)
+   )
+   @u(Least squares fit)
+   @cl:with-package[name="cl-optim"](
+      @cl:doc(function linear-least-squares)
    )
    @u(Heuristics)
    @cl:with-package[name="cl-optim"](
@@ -197,12 +241,6 @@ CL-USER> (cl-optim:simulated-annealing
    @item(Do not forgot to use @c(optimize (speed 3)) declaration in functions
    which may be a bottleneck. Though not as smart as with ordinary math
    functions, SBCL can produce nice assembly code when optimizing for speed.)
-   @item(Remember, the gradient-based algorithms are not guarateed to find the
-   @i(global) minimum. Indeed, the minimum they find depends on various
-   parameters: the starting point, the fricton and so on. If the function you
-   want to minimize is convex, you will find a global minimum. On the contrary,
-   the heuristic algorithms like simulated annealing try to find the global
-   minimum by design.)
    @item(If you use Emacs with julia-mode, the lines at the end of this section
    added to @c(~/.emacs) will help you to type Greek symbols. For example, to
    type ε you need to type @c(\upepsilon) and press Tab.)

@@ -103,3 +103,52 @@
                    (magicl:.- (bfgs/magicl #'rosenbrock vector) expected))
                   1d-4))
          80)))
+
+(test linear-least-squares-exact
+  (loop repeat 500 do
+        (is (< (nth-value
+                1 (linear-least-squares
+                   (to-doubles (loop repeat 2 collect (random 1d0)))
+                   (to-doubles (loop repeat 2 collect (random 1d0)))))
+               1d-10)))
+  (loop repeat 500 do
+        (is (< (nth-value
+                1 (linear-least-squares
+                   (to-doubles (loop repeat 3 collect (random 1d0)))
+                   (to-doubles (loop repeat 3 collect (random 1d0)))
+                   (to-doubles (loop repeat 3 collect (random 1d0)))))
+               1d-10)))
+  (loop repeat 500 do
+        (is (< (nth-value
+                1 (linear-least-squares
+                   (to-doubles (loop repeat 4 collect (random 1d0)))
+                   (to-doubles (loop repeat 4 collect (random 1d0)))
+                   (to-doubles (loop repeat 4 collect (random 1d0)))
+                   (to-doubles (loop repeat 4 collect (random 1d0)))))
+               1d-10))))
+
+(defun llsq-diff (a b xs ys)
+  (reduce
+   #'+ (map '(vector double-float)
+            (lambda (x y)
+              (expt (- y (* a x) b) 2))
+            xs ys)))
+
+(test linear-least-square-univariate
+  (let ((a (random 100d0))
+        (b (random 100d0)))
+    (loop repeat 1000
+          for n  = (+ (random 100) 2)
+          for xs = (to-doubles (loop repeat n collect (random 100d0)))
+          for ys = (map '(vector double-float)
+                        (lambda (x noise) (+ (* x a) b noise))
+                        xs (loop repeat n collect (random 1d0)))
+          for βs = (linear-least-squares ys xs)
+          for β0  = (aref βs 0)
+          for β1  = (aref βs 1)
+
+          for diff-min = (llsq-diff β0 β1 xs ys)
+          for diff     = (llsq-diff (+ β0 (random 1d0))
+                                    (+ β1 (random 1d0))
+                                    xs ys)
+          do (is (< diff-min diff)))))

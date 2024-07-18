@@ -2,6 +2,7 @@
   (:use #:cl)
   (:import-from #:cl-forward-diff
                 #:dual
+                #:to-doubles
                 #:differentiable-multivariate
                 #:differentiable-univariate)
   #.(cl-forward-diff:shadowing-import-math)

@@ -13,6 +13,9 @@
    ;; Gradient based with Hessian approximation
    #:bfgs #:bfgs/magicl #:backtracking-options
 
+   ;; Least squares
+   #:linear-least-squares
+
    ;; Heuristics
    #:simulated-annealing
    #:exponential-cooldown
