@@ -104,6 +104,13 @@
                   1d-4))
          80)))
 
+(defun llsq-diff (a b xs ys p)
+  (reduce
+   #'+ (map '(vector double-float)
+            (lambda (x y)
+              (expt (abs (- y (* a x) b)) p))
+            xs ys)))
+
 (test linear-least-squares-exact
   (loop repeat 500 do
         (is (< (nth-value
@@ -127,28 +134,73 @@
                    (to-doubles (loop repeat 4 collect (random 1d0)))))
                1d-10))))
 
-(defun llsq-diff (a b xs ys)
-  (reduce
-   #'+ (map '(vector double-float)
-            (lambda (x y)
-              (expt (- y (* a x) b) 2))
-            xs ys)))
-
 (test linear-least-square-univariate
-  (let ((a (random 100d0))
-        (b (random 100d0)))
-    (loop repeat 1000
-          for n  = (+ (random 100) 2)
-          for xs = (to-doubles (loop repeat n collect (random 100d0)))
-          for ys = (map '(vector double-float)
-                        (lambda (x noise) (+ (* x a) b noise))
-                        xs (loop repeat n collect (random 1d0)))
-          for βs = (linear-least-squares ys xs)
-          for β0  = (aref βs 0)
-          for β1  = (aref βs 1)
+  (loop repeat 1000
+        for a  = (random 100d0)
+        for b  = (random 100d0)
+        for n  = (+ (random 100) 2)
+        for xs = (to-doubles (loop repeat n collect (random 100d0)))
+        for ys = (map '(vector double-float)
+                      (lambda (x noise) (+ (* x a) b noise))
+                      xs (loop repeat n collect (random 1d0)))
+        for βs = (linear-least-squares ys xs)
+        for β0 = (aref βs 0)
+        for β1 = (aref βs 1)
 
-          for diff-min = (llsq-diff β0 β1 xs ys)
-          for diff     = (llsq-diff (+ β0 (random 1d0))
-                                    (+ β1 (random 1d0))
-                                    xs ys)
-          do (is (< diff-min diff)))))
+        for diff-min = (llsq-diff β0 β1 xs ys 2)
+        for diff     = (llsq-diff (+ β0 (random 1d0))
+                                  (+ β1 (random 1d0))
+                                  xs ys 2)
+        do (is (< diff-min diff))))
+
+(test linear-irls-exact
+  (loop repeat 500 do
+        (is (< (nth-value
+                1 (linear-irls
+                   (1+ (random 2d0))
+                   *default-linear-irls-options*
+                   (to-doubles (loop repeat 2 collect (random 1d0)))
+                   (to-doubles (loop repeat 2 collect (random 1d0)))))
+               1d-6)))
+  (loop repeat 500 do
+        (is (< (nth-value
+                1 (linear-irls
+                   (1+ (random 2d0))
+                   *default-linear-irls-options*
+                   (to-doubles (loop repeat 3 collect (random 1d0)))
+                   (to-doubles (loop repeat 3 collect (random 1d0)))
+                   (to-doubles (loop repeat 3 collect (random 1d0)))))
+               1d-6)))
+  (loop repeat 500 do
+        (is (< (nth-value
+                1 (linear-irls
+                   (1+ (random 2d0))
+                   *default-linear-irls-options*
+                   (to-doubles (loop repeat 4 collect (random 1d0)))
+                   (to-doubles (loop repeat 4 collect (random 1d0)))
+                   (to-doubles (loop repeat 4 collect (random 1d0)))
+                   (to-doubles (loop repeat 4 collect (random 1d0)))))
+               1d-6))))
+
+(test linear-irls-univariate
+  (is
+   (< (loop repeat 10000
+            for a  = (random 100d0)
+            for b  = (random 100d0)
+            for p  = (1+ (random 2d0))
+            for n  = (+ (random 100) 2)
+            for xs = (to-doubles (loop repeat n collect (random 100d0)))
+            for ys = (map '(vector double-float)
+                          (lambda (x noise) (+ (* x a) b noise))
+                          xs (loop repeat n collect (random 1d0)))
+
+            for βs = (linear-irls p *default-linear-irls-options* ys xs)
+            for β0 = (aref βs 0)
+            for β1 = (aref βs 1)
+
+            for diff-min = (llsq-diff β0 β1 xs ys 2)
+            for diff     = (llsq-diff (+ β0 (random 1d0))
+                                      (+ β1 (random 1d0))
+                                      xs ys p)
+            when (< diff diff-min) sum 1)
+      10)))

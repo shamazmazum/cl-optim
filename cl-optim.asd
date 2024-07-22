@@ -9,6 +9,7 @@
   :components ((:file "package")
                (:file "types")
                (:file "gradient")
+               (:file "matrices")
                (:file "bfgs")
                (:file "annealing")
                (:file "least-squares"))

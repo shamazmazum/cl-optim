@@ -216,6 +216,8 @@ CL-USER> (cl-optim:linear-least-squares
    @u(Least squares fit)
    @cl:with-package[name="cl-optim"](
       @cl:doc(function linear-least-squares)
+      @cl:doc(function linear-irls)
+      @cl:doc(variable *default-linear-irls-options*)
    )
    @u(Heuristics)
    @cl:with-package[name="cl-optim"](

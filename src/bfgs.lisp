@@ -1,34 +1,5 @@
 (in-package :cl-optim)
 
-;; Helper functions
-(sera:-> %dot (magicl:vector/double-float
-               magicl:vector/double-float)
-         (values double-float &optional))
-(declaim (inline %dot))
-(defun %dot (v1 v2)
-  (magicl:dot v1 v2))
-
-(sera:-> %norm (magicl:vector/double-float)
-         (values double-float &optional))
-(declaim (inline %norm))
-(defun %norm (v)
-  (magicl:norm v))
-
-(sera:-> %storage (magicl:vector/double-float)
-         (values (%vector double-float) &optional))
-(declaim (inline %storage))
-(defun %storage (xs)
-  (magicl::storage xs))
-
-(sera:-> column-*-row (magicl:vector/double-float
-                       magicl:vector/double-float)
-         (values magicl:matrix/double-float &optional))
-(declaim (inline column-*-row))
-(defun column-*-row (c r)
-  (magicl:@
-   (magicl:vector->column-matrix c)
-   (magicl:vector->row-matrix    r)))
-
 (sera:-> eval-function (diff:differentiable-multivariate
                         magicl:vector/double-float)
          (values double-float &optional))
@@ -162,14 +133,6 @@ approximation of Hessian at this point and a total number of steps."
 
                        (%iteration new-x (magicl:.+ h diff-h) (1+ step)))))))
       (%iteration initial-approximation id 0))))
-
-(sera:-> to-magicl-vector ((simple-array double-float (*)))
-         (values magicl:vector/double-float &optional))
-(declaim (inline to-magicl-vector))
-(defun to-magicl-vector (vector)
-  (magicl:make-tensor 'magicl:vector/double-float
-                           (list (length vector))
-                           :storage vector))
 
 (sera:-> bfgs
          (diff:differentiable-multivariate

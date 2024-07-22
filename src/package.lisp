@@ -15,6 +15,8 @@
 
    ;; Least squares
    #:linear-least-squares
+   #:linear-irls
+   #:*default-linear-irls-options*
 
    ;; Heuristics
    #:simulated-annealing
