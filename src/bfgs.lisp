@@ -163,6 +163,14 @@ approximation of Hessian at this point and a total number of steps."
                        (%iteration new-x (magicl:.+ h diff-h) (1+ step)))))))
       (%iteration initial-approximation id 0))))
 
+(sera:-> to-magicl-vector ((simple-array double-float (*)))
+         (values magicl:vector/double-float &optional))
+(declaim (inline to-magicl-vector))
+(defun to-magicl-vector (vector)
+  (magicl:make-tensor 'magicl:vector/double-float
+                           (list (length vector))
+                           :storage vector))
+
 (sera:-> bfgs
          (diff:differentiable-multivariate
           (%vector double-float)
@@ -183,10 +191,7 @@ approximation of Hessian at this point and a total number of steps."
   (declare (optimize (speed 3)))
   (multiple-value-bind (min hessian steps)
       (bfgs/magicl
-       function
-       (magicl:make-tensor 'magicl:vector/double-float
-                           (list (length initial-approximation))
-                           :storage initial-approximation)
+       function (to-magicl-vector initial-approximation)
        :backtracking-options backtracking-options
        :ε ε
        :max-steps max-steps)

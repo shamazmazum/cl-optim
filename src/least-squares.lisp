@@ -27,21 +27,17 @@ Also the value of the target expression is returned as the second value.
 All passed arrays must be of the same size. This function may signal
 SIMPLE-ERROR if they are too short."
   (declare (optimize (speed 3)))
-  (let ((length (length ys)))
-    (flet ((to-vector (a)
-             (magicl:from-array a (list length) :type 'double-float))
-           (to-matrix (a)
-             (magicl:from-array a (list length 1) :type 'double-float)))
-      (let* ((ys (to-vector ys))
-             (xs (magicl:hstack
-                  (append
-                   (mapcar #'to-matrix xs)
-                   (list (magicl:ones (list length 1) :type 'double-float)))))
-             (βs (magicl:mult
-                  (magicl:mult
-                   (magicl:inv (magicl:mult xs xs :transa :t))
-                   xs :transb :t)
-                  ys)))
-        (values
-         (%storage βs)
-         (linear-least-squares-cost βs ys xs))))))
+  (let* ((y (to-magicl-vector ys))
+         (x (magicl:hstack
+             (append (mapcar
+                      (lambda (v) (magicl:vector->column-matrix (to-magicl-vector v)))
+                      xs)
+                     (list (magicl:ones (list (length ys) 1) :type 'double-float)))))
+         (β (magicl:mult
+             (magicl:mult
+              (magicl:inv (magicl:mult x x :transa :t))
+              x :transb :t)
+             y)))
+    (values
+     (%storage β)
+     (linear-least-squares-cost β y x))))
