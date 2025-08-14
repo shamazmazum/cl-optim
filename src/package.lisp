@@ -1,7 +1,6 @@
 (defpackage cl-optim
   (:use #:cl)
   (:local-nicknames (#:sera #:serapeum)
-                    (#:diff #:cl-forward-diff)
                     (#:alex #:alexandria))
   (:export
    ;; Gradient based

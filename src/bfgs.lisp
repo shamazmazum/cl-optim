@@ -1,24 +1,18 @@
 (in-package :cl-optim)
 
-(sera:-> eval-function (diff:differentiable-multivariate
-                        magicl:vector/double-float)
+(sera:-> eval-function (doubles->double magicl:vector/double-float)
          (values double-float &optional))
-(defun eval-function (function xs)
+(defun eval-function (f x)
   (declare (optimize (speed 3)))
-  (diff:dual-realpart
-   (funcall function
-            (map '(vector diff:dual)
-                 #'diff:make-dual
-                 (%storage xs)))))
+  (funcall f (%storage x)))
 
-(sera:-> eval-gradient (diff:differentiable-multivariate
-                        magicl:vector/double-float)
+(sera:-> eval-gradient (doubles->doubles magicl:vector/double-float)
          (values magicl:vector/double-float &optional))
-(defun eval-gradient (function xs)
+(defun eval-gradient (f x)
   (declare (optimize (speed 3)))
   (magicl:make-tensor
-   'magicl:vector/double-float (magicl:shape xs)
-   :storage (diff:ad-multivariate function (%storage xs))))
+   'magicl:vector/double-float (magicl:shape x)
+   :storage (funcall f (%storage x))))
 
 ;; Backtracking line search
 (sera:defconstructor backtracking-options
@@ -38,7 +32,7 @@ is a maximal number of steps in the backtracking search.")
   "Default options for the backtracking line search algorithm.")
 
 (sera:-> backtracking-search
-         (diff:differentiable-multivariate
+         (doubles->double
           magicl:vector/double-float
           magicl:vector/double-float
           &key
@@ -71,19 +65,18 @@ gradient and the search direction can be supplied in @c(dot)."
                                     (1+ step))))))
       (%search (backtracking-options-η options) 0))))
 
-
 ;; BFGS algorithm
 (sera:-> bfgs/magicl
-         (diff:differentiable-multivariate
-          magicl:vector/double-float
-          &key
+         (doubles->double
+          doubles->doubles
+          magicl:vector/double-float &key
           (:ε double-float)
           (:max-steps alex:positive-fixnum)
           (:backtracking-options backtracking-options))
          (values magicl:vector/double-float
                  magicl:matrix/double-float
                  alex:non-negative-fixnum &optional))
-(defun bfgs/magicl (function initial-approximation
+(defun bfgs/magicl (f g initial-approximation
                     &key
                       (backtracking-options *default-backtracking-options*)
                       (ε 1d-6)
@@ -100,7 +93,7 @@ approximation of Hessian at this point and a total number of steps."
          (id (magicl:eye (list nvars nvars) :type 'double-float)))
     (labels ((%iteration (x h step)
                (declare (type alex:non-negative-fixnum step))
-               (let ((grad (eval-gradient function x)))
+               (let ((grad (eval-gradient g x)))
                  (if (or (< (%norm grad) ε)
                          (= step max-steps))
                      (values x (magicl:inv h) step)
@@ -111,12 +104,12 @@ approximation of Hessian at this point and a total number of steps."
                             (h (if direction-ok-p h id))
                             (dot (if direction-ok-p
                                      dot (%dot anti-direction grad)))
-                            (new-x (backtracking-search function x anti-direction
+                            (new-x (backtracking-search f x anti-direction
                                                         :options backtracking-options
                                                         :grad grad
                                                         :dot dot))
                             (diff-x (magicl:.- new-x x))
-                            (diff-grad (magicl:.- (eval-gradient function new-x) grad))
+                            (diff-grad (magicl:.- (eval-gradient g new-x) grad))
 
                             (tmp1 (%dot diff-x diff-grad))
                             (tmp2 (%dot diff-grad (magicl:@ h diff-grad)))
@@ -135,7 +128,8 @@ approximation of Hessian at this point and a total number of steps."
       (%iteration initial-approximation id 0))))
 
 (sera:-> bfgs
-         (diff:differentiable-multivariate
+         (doubles->double
+          doubles->doubles
           (%vector double-float)
           &key
           (:ε double-float)
@@ -144,7 +138,7 @@ approximation of Hessian at this point and a total number of steps."
          (values (%vector double-float)
                  magicl:matrix/double-float
                  alex:non-negative-fixnum &optional))
-(defun bfgs (function initial-approximation
+(defun bfgs (f g initial-approximation
              &key
                (backtracking-options *default-backtracking-options*)
                (ε 1d-6)
@@ -154,7 +148,7 @@ approximation of Hessian at this point and a total number of steps."
   (declare (optimize (speed 3)))
   (multiple-value-bind (min hessian steps)
       (bfgs/magicl
-       function (to-magicl-vector initial-approximation)
+       f g (to-magicl-vector initial-approximation)
        :backtracking-options backtracking-options
        :ε ε
        :max-steps max-steps)

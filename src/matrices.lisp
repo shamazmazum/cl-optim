@@ -44,12 +44,13 @@
 (defun diag-*-matrix (diag matrix)
   "Convert a magicl vector to a diagonal matrix."
   (declare (optimize (speed 3)))
-  (let ((shape (magicl:shape matrix)))
-    (assert (= (magicl:size diag) (first shape)))
-    (let ((result (magicl:zeros shape :type 'double-float)))
-      (loop for i fixnum below (first shape) do
-            (loop for j fixnum below (second shape) do
-                  (setf (magicl:tref result i j)
-                        (* (magicl:tref matrix i j)
-                           (magicl:tref diag i)))))
-      result)))
+  (let* ((shape (magicl:shape matrix))
+         (result (magicl:zeros shape :type 'double-float)))
+    (assert (= (the fixnum (magicl:size diag))
+               (the fixnum (first shape))))
+    (loop for i fixnum below (first shape) do
+          (loop for j fixnum below (second shape) do
+                (setf (magicl:tref result i j)
+                      (* (magicl:tref matrix i j)
+                         (magicl:tref diag i)))))
+    result))

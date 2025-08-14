@@ -1,16 +1,12 @@
 (defpackage cl-optim-tests-fn-diff
   (:use #:cl)
-  (:import-from #:cl-forward-diff
-                #:dual
-                #:to-doubles
-                #:differentiable-multivariate
-                #:differentiable-univariate)
   #.(cl-forward-diff:shadowing-import-math)
-  (:local-nicknames (#:si #:stateless-iterators))
-  (:export #:rosenbrock
-           #:paraboloid
-           #:booth
-           #:hills))
+  (:local-nicknames (#:si   #:stateless-iterators)
+                    (#:diff #:cl-forward-diff))
+  (:export #:rosenbrock #:rosenbrock-grad
+           #:paraboloid #:paraboloid-grad
+           #:booth      #:booth-grad
+           #:hills      #:hills-grad))
 
 (defpackage cl-optim-tests-fn
   (:use #:cl)

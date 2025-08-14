@@ -42,7 +42,7 @@
 
 (sera:-> normal-neighborhood
          (alex:non-negative-double-float)
-         (values neighborhood-function &optional))
+         (values doubles->doubles &optional))
 (defun normal-neighborhood (σ)
   "Create a neighborhood function which calculates a new candidate by
 adding a vector of independent random values with distribution
@@ -71,6 +71,14 @@ temperature by a parameter @c(0 < λ < 1)"
 
 ;; Simulated annealing
 
+(sera:-> simulated-annealing (doubles->double
+                              (%vector double-float) &key
+                              (:max-iterations      alex:positive-fixnum)
+                              (:initial-temperature (double-float 0d0))
+                              (:final-temperature   (double-float 0d0))
+                              (:cooldown            cooldown-function)
+                              (:next                doubles->doubles))
+         (values (%vector double-float) simulated-annealing-summary &optional))
 (defun simulated-annealing (function start-point
                             &key
                               (max-iterations      most-positive-fixnum)
@@ -99,12 +107,7 @@ candidate for a minimum.
 This function returns the found minimum and an object of type
 @c(simulated-annealing-summary) which contains some statistics like a
 total number of iterations, the final temperature and so on."
-  (declare (optimize (speed 3))
-           (type optimizable-function function)
-           (type cooldown-function cooldown)
-           (type neighborhood-function next)
-           (type alex:non-negative-double-float final-temperature)
-           (type alex:positive-fixnum max-iterations))
+  (declare (optimize (speed 3)))
   (let ((scaling (abs (funcall function start-point))))
     (labels ((annealing-step (summary point)
                (let ((temperature  (summary-temperature  summary))

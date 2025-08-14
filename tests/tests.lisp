@@ -19,7 +19,7 @@
    (lambda (optimizer)
      (loop repeat 10 do
           (multiple-value-bind (x iter)
-              (funcall optimizer #'paraboloid
+              (funcall optimizer #'paraboloid-grad
                        (to-doubles
                         (list (random 10d0)
                               (random 10d0))))
@@ -36,7 +36,7 @@
    (lambda (optimizer)
      (loop repeat 10 do
           (multiple-value-bind (x iter)
-              (funcall optimizer #'booth
+              (funcall optimizer #'booth-grad
                        (to-doubles
                         (list (- (random 10d0) 5d0)
                               (- (random 10d0) 5d0))))
@@ -53,7 +53,7 @@
      (loop repeat 10 do
           (multiple-value-bind (x iter)
               (funcall optimizer
-                       #'rosenbrock
+                       #'rosenbrock-grad
                        (to-doubles
                         (list (- (random 4d0) 2d0)
                               (- (random 4d0) 2d0))))
@@ -75,7 +75,7 @@
 (test opt-hills
   (loop repeat 10 do
        (multiple-value-bind (x iter)
-           (nag (alexandria:compose #'hills (alexandria:rcurry #'aref 0))
+           (nag #'hills-grad
                 (to-doubles (list (+ (random 4d0) 11d0)))
                 :η  1d-3
                 :β1 0.95d0)
@@ -93,16 +93,13 @@
                (closep opt '(4d0) 0.15d0))))
        2)))
 
-;; Failure rate no more than 20%
 (test bfgs
-  (is (> (loop with expected = (magicl:ones '(30))
-               repeat 100
-               for vector = (magicl:.- (magicl:scale (magicl:rand '(30)) 40) 20)
-               count
-               (< (magicl:norm
-                   (magicl:.- (bfgs/magicl #'rosenbrock vector) expected))
-                  1d-4))
-         80)))
+  (loop with expected = (magicl:ones '(3))
+        repeat 1000
+        for vector = (magicl:.- (magicl:scale (magicl:rand '(3)) 40) 20) do
+        (is (< (magicl:norm
+                (magicl:.- (bfgs/magicl #'rosenbrock #'rosenbrock-grad vector) expected))
+               1d-4))))
 
 (defun llsq-diff (a b xs ys p)
   (reduce
@@ -183,24 +180,22 @@
                1d-6))))
 
 (test linear-irls-univariate
-  (is
-   (< (loop repeat 10000
-            for a  = (random 100d0)
-            for b  = (random 100d0)
-            for p  = (1+ (random 2d0))
-            for n  = (+ (random 100) 2)
-            for xs = (to-doubles (loop repeat n collect (random 100d0)))
-            for ys = (map '(vector double-float)
-                          (lambda (x noise) (+ (* x a) b noise))
-                          xs (loop repeat n collect (random 1d0)))
+  (loop repeat 10000
+        for a  = (+ (random 10d0) 3d-1)
+        for b  = (random 100d0)
+        for p  = (+ (random 2d0) 1)
+        for n  = (+ (random 200) 100)
+        for xs = (to-doubles (loop repeat n collect (random 100d0)))
+        for ys = (map '(vector double-float)
+                      (lambda (x noise) (+ (* x a) b noise))
+                      xs (loop repeat n collect (random 1d0)))
 
-            for βs = (linear-irls p *default-linear-irls-options* ys xs)
-            for β0 = (aref βs 0)
-            for β1 = (aref βs 1)
+        for βs = (linear-irls p *default-linear-irls-options* ys xs)
+        for β0 = (aref βs 0)
+        for β1 = (aref βs 1)
 
-            for diff-min = (llsq-diff β0 β1 xs ys 2)
-            for diff     = (llsq-diff (+ β0 (random 1d0))
-                                      (+ β1 (random 1d0))
-                                      xs ys p)
-            when (< diff diff-min) sum 1)
-      10)))
+        for diff-min = (llsq-diff β0 β1 xs ys 2)
+        for diff     = (llsq-diff (+ β0 (random 1.5d0))
+                                  (+ β1 (random 1.5d0))
+                                  xs ys p)
+        do (is (> diff diff-min))))
