@@ -3,88 +3,96 @@
    CL-OPTIM system provides a collection of algorithms for minimizing real
    functions of one or many arguments.
 
+   Because Codex (the system with which this documentation is generated) cannot
+   add type annotations, it's important to mention that most of the algos in
+   this library will require a @i(gradient function) which is a function which
+   takes a simple array of double floats (arguments) and returns a simple array
+   of double floats (gradient values at this point) and/or a @i(target function)
+   which is to be minimized which takes a simple array of double floats and
+   returns a double float (its value at this point).
+
    @begin(section)
       @title(Gradient-based algorithms)
-      These algorithms require the function to be differentiable at almost every
-      point. There is no need to define the derivative of the function you wish
-      to minimize. A special system,
+      These algorithms require a gradient function to be defined along with a
+      target function. A gradient function can be obtained automatically with
+      the help of my another library,
       @link[uri="https://github.com/shamazmazum/cl-forward-diff"](cl-forward-diff),
-      is capable of automatic differentiation. For example, let's write a
-      function which evaluates a polynomial at point @c(x) given the polynomial
-      coefficients @c(coeffs). For the sake of automatic differentiation we must
-      not use standard mathematical functions from the @c(cl) package. Instead
-      we must use functions from @c(cl-forward-diff) package. If you mix them
-      you will get either runtime error or compile time error (depending on your
-      implementation). You will never get a wrong result, so don't worry about
-      accidentally mixing these functions. To minimize a probability of an error
-      I recommend to define differentiable functions in a separate package which
-      shadows mathematical functions from @c(cl) with ones provided by
-      @c(cl-forward-diff). Our function, @c(polynomial) can look like this:
+      but you can define it manually.
+
+      For example, let's write a function which evaluates a polynomial at point
+      @c(x) given the polynomial coefficients @c(coeffs) and another function
+      which returns the gradient of the first function. For the sake of
+      automatic differentiation we must not use standard mathematical functions
+      from the @c(cl) package. Instead we must use functions from
+      @c(cl-forward-diff) package. If you mix them you will get either runtime
+      error or compile time error (depending on your implementation). You will
+      never get a wrong result, so don't worry about accidentally mixing these
+      functions. To minimize a probability of an error I recommend to define
+      differentiable functions in a separate package which shadows mathematical
+      functions from @c(cl) with ones provided by @c(cl-forward-diff). Our
+      functions, @c(polynomial) and @c(polynomial-grad) can look like this:
       @begin[lang=lisp](code)
 (defpackage polynomial
-  (:use #:cl #:snakes)
-  (:import-from #:cl-forward-diff #:dual)
-  (:import-from #:serapeum #:->)
+  (:use #:cl)
+  (:local-nicknames (#:si   #:stateless-iterators)
+                    (#:diff #:cl-forward-diff))
   #.(cl-forward-diff:shadowing-import-math)
-  (:export #:polynomial))
+  (:export #:polynomial #:polynomial-gradient))
 (in-package :polynomial)
 
-(-> polynomial (list dual) (values dual &optional))
 (defun polynomial (coeffs x)
-  (declare (type dual x))
-  (reduce-generator
-   #'+
-   (imap (lambda (c n)
-           (* c (expt x n)))
-         (list->generator coeffs)
-         (icount 0))))
-      @end(code)
-      Type declarations are added for clarity, but combining them with
-      declarations like @c((declare (optimize (speed 3)))) can also result in
-      better generated code.
+  ;; Extract the first argument from the array of arguments
+  (let ((x (aref x 0)))
+    ;; Evaluate the polynomial at the point X
+    (si:foldl
+     #'+ 0
+     (si:imap (lambda (c n)
+                (* c (expt x n)))
+              (si:list->iterator coeffs)
+              (si:count-from 0)))))
 
-      As you can see, differentiable functions operate not with usual numbers
-      but with values of type @c(dual) (so called dual numbers). You can
-      evaluate some polynomial, let it be \(f(x) = 1 + 2x + 3x^2\) at the
-      point \(x\) (let \(x = 2\)) along with its first derivative \(f'(x) = 2 +
-      6x\) like this:
-      @begin[lang=repl](code)
-CL-USER> (polynomial:polynomial '(1 2 3) #d(2d0 1d0))
-#<SIMD-PACK 1.7000000000000d+1 1.4000000000000d+1>
-      @end(code)
-      The type @c(dual) is implemented as a structure which has two slots for
-      double float numbers, so all calculations are performed with double
-      precision.
+(defun polynomial-gradient (coeffs x)
+  ;; Use automatic differentiation to extract the value of derivative
+  ;; at the point X
+  (diff:ad-multivariate
+   (lambda (x) (polynomial coeffs x))
+   x))
+   @end(code)
 
-      Now when we have this function, @c(polynomial), we want to find the
-      minimum of our polynomial f(x). We can use the simplest gradient descent
-      algorithm for this purpose. Try the following code in the REPL:
-      @begin[lang=repl](code)
+      You can evaluate a polynomial, let it be \(f(x) = 1 + 2x + 3x^2\) at the
+      point \(x\) (let \(x = 2\)) and its first derivative \(f'(x) = 2 + 6x\)
+      like this (@c(to-doubles) is a helper which generates a simple array of
+      double floats from a sequence of reals):
+      @begin[lang=lisp](code)
+CL-USER> (polynomial:polynomial '(1 2 3) (cl-forward-diff:to-doubles '(2)))
+17.0d0
+CL-USER> (polynomial:polynomial-gradient '(1 2 3) (cl-forward-diff:to-doubles '(2)))
+#(14.0d0)
+      @end(code)
+
+      Now when we have the gradient function, @c(polynomial-gradient), we want
+      to find the minimum of our polynomial. We can use the simplest gradient
+      descent algorithm for this purpose. Try the following code in the REPL:
+      @begin[lang=lisp](code)
 CL-USER> (cl-optim:gradient-descent
- (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
-                     (alexandria:rcurry #'aref 0))
- (cl-forward-diff:to-doubles '(10)))
-#(-0.3331667786236352d0)
-3673
+ (lambda (x) (polynomial:polynomial-gradient '(1 2 3) x))
+ (cl-forward-diff:to-doubles '(1)))
+#(-0.3331670485897465d0)
+2992
       @end(code)
-      The first argument of @c(gradient-descent) is a function to be
-      minimized. It takes a vector of dual numbers (let its length be @c(n)) and
-      return a dual number. We must compose partially applied @c(polynomial)
-      with @c((lambda (xs) (aref xs 0))) because @c(polynomial) excepts a single
-      dual number, not a vector of duals. The second argument is a starting
-      point for a search. It is a vector of double floats of the same length
-      @c(n). Because our function is convex, just every starting point will do.
+      The first argument of @c(gradient-descent) is the gradient of a function
+      to be minimized. The second argument is a starting point for a
+      search. Because our function is convex, just every starting point will do.
 
       The first returned value is the found minimum and the second is the number
       of steps required to find that minimum. You can use a better algorithm to
       reduce the number of steps:
-      @begin[lang=repl](code)
+      @begin[lang=lisp](code)
 CL-USER> (cl-optim:nag
-          (alexandria:compose (alexandria:curry #'polynomial:polynomial '(1 2 3))
-                     (alexandria:rcurry #'aref 0))
-          '(10))
-#(-0.33344855804382767d0)
-139
+ (lambda (x) (polynomial:polynomial-gradient '(1 2 3) x))
+ (cl-forward-diff:to-doubles '(1)))
+#(-0.3331680985581683d0)
+136
       @end(code)
 
       Just another example of minimizing a function of two variables (Rosenbrock
@@ -92,7 +100,7 @@ CL-USER> (cl-optim:nag
       @begin[lang=lisp](code)
 (defpackage rosenbrock
   (:use #:cl)
-  (:import-from #:cl-forward-diff #:dual)
+  (:local-nicknames (#:diff #:cl-forward-diff))
   #.(cl-forward-diff:shadowing-import-math)
   (:export #:rosenbrock))
 (in-package :rosenbrock)
@@ -102,28 +110,41 @@ CL-USER> (cl-optim:nag
         (y (aref xs 1)))
     (+ (expt (- 2 x) 2)
        (* 100 (expt (- y (expt x 2)) 2)))))
+
+(defun rosenbrock-gradient (x)
+  (diff:ad-multivariate #'rosenbrock x))
       @end(code)
       Evaluate in the REPL:
-      @begin[lang=repl](code)
+      @begin[lang=lisp](code)
 CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock
                        (cl-forward-diff:to-doubles '(-1 1))
                        :η  1d-4
                        :ε  1d-5
                        :β1 0.99d0)
-#(1.999993247190274d0 3.9999729695129296d0)
-5275
+#(1.9999787688313526d0 3.9999150258343437d0)
+6693
       @end(code)
       Here I overrided some default parameters @c(β1), @c(ε) and @c(η). For more
       information see @ref[id=api](API) section.
+
+      The best algorithm is BFGS:
+      @begin[lang=lisp](code)
+      CL-USER> (cl-optim:bfgs #'rosenbrock:rosenbrock #'rosenbrock:rosenbrock-gradient
+                       (cl-forward-diff:to-doubles '(-1 1)))
+#(2.000000000000671d0 4.000000000002626d0)
+#<MAGICL:MATRIX/DOUBLE-FLOAT (2x2):
+  3192.251    -797.639
+  -797.639    199.428>
+40
+      @end(code)
    @end(section)
 
    @begin(section)
       @title(Algorithms which work without gradient)
 
       Currently there is only one algorithm in @c(cl-optim) which can optimize
-      non-differentiable functions: simulated annealing. The function you wish
-      to minimize must operate with @c(double-float) numbers, not with
-      @c(dual)s. Take this function as an example.
+      non-differentiable functions: simulated annealing. Let's minimize the
+      following function:
 
       @begin[lang=lisp](code)
 (defun noise-sinc (x)
@@ -139,7 +160,7 @@ CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock
       amplitude. This function can not be differentiated due to this noise. Now
       try this in the REPL:
 
-      @begin[lang=repl](code)
+      @begin[lang=lisp](code)
 CL-USER> (cl-optim:simulated-annealing
           (alexandria:compose #'noise-sinc
                               (alexandria:rcurry #'aref 0))
@@ -279,62 +300,53 @@ CL-USER> (cl-optim:linear-least-squares
       @begin[lang=lisp](code)
 (defpackage linear-system
   (:use #:cl)
-  (:local-nicknames (#:sera #:serapeum)
-                    (#:diff #:cl-forward-diff))
   #.(cl-forward-diff:shadowing-import-math)
-  (:export #:linear-system-cost #:%make-array))
+  (:local-nicknames (#:diff #:cl-forward-diff))
+  (:export #:my-system #:my-system-grad))
 (in-package :linear-system)
 
-(sera:-> matrix-vector-mul
-         ((simple-array diff:dual (cl:* cl:*))
-          (simple-array diff:dual (cl:*)))
-         (values (simple-array diff:dual (cl:*)) &optional))
 (defun matrix-vector-mul (mat vec)
   "Multiply a matrix MAT by a column VEC"
-  (aops:each-index* 'diff:dual i
+  (aops:each-index i
       (aops:reduce-index #'+ j
           (* (aref mat i j) (aref vec j)))))
 
-(sera:-> linear-system-cost
-         ((simple-array diff:dual (cl:* cl:*))
-          (simple-array diff:dual (cl:*))
-          (simple-array diff:dual (cl:*)))
-         (values diff:dual &optional))
 (defun linear-system-cost (mat v u)
   "Calculate a cost function for a system of linear equations MAT*X=V at the
   point X=U"
   (let ((val (matrix-vector-mul mat u)))
     (reduce
-     #'+ (map '(vector diff:dual)
+     #'+ (map 'vector
               (lambda (v1 v2)
                 (expt (- v1 v2) 2))
               v val))))
 
 (defun %make-array (list shape)
-  "Helper function to convert lists to arrays of dual numbers"
-  (labels ((to-dual (list)
-             (mapcar (lambda (x)
-                       (if (listp x) (to-dual x)
-                           (diff:make-dual (float x 0d0))))
-                     list)))
-    (make-array shape
-                :element-type     'diff:dual
-                :initial-contents (to-dual list))))
+  (make-array shape
+              :element-type     'real
+              :initial-contents list))
+
+(defun my-system (u)
+  (linear-system-cost
+   (linear-system:%make-array
+    '((1 2 1 3)
+      (2 1 1 1)
+      (1 3 2 4)
+      (1 5 1 1))
+    '(4 4))
+   (linear-system:%make-array
+    '(18 12 28 23)
+    '(4))
+   u))
+
+(defun my-system-grad (u)
+  (diff:ad-multivariate #'my-system u))
       @end(code)
 
       Now evaluate the following code in the REPL:
       @begin[lang=lisp](code)
 (cl-optim:bfgs/magicl
- (alexandria:curry #'linear-system:linear-system-cost
-                   (linear-system:%make-array
-                    '((1 2 1 3)
-                      (2 1 1 1)
-                      (1 3 2 4)
-                      (1 5 1 1))
-                    '(4 4))
-                   (linear-system:%make-array
-                    '(18 12 28 23)
-                    '(4)))
+ #'linear-system:my-system #'linear-system:my-system-grad
  (magicl:zeros '(4)))
       @end(code)
 
@@ -352,8 +364,8 @@ CL-USER> (cl-optim:linear-least-squares
   20.000    48.002    26.000    53.998>
 7
       @end(code)
-      The first value is the minimizer of @c(linear-system-cost): \((1, 3, 5,
-      2)\). The second value is Hessian of the cost function at \(x\). The last
-      value is a number of iterations needed to minimize the cost function.
+      The first value is the minimizer of @c(my-system): \((1, 3, 5, 2)\). The
+      second value is Hessian of the cost function at \(x\). The last value is a
+      number of iterations needed to minimize the cost function.
    @end(section)
 @end(section)

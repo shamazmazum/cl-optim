@@ -45,7 +45,7 @@ is a maximal number of steps in the backtracking search.")
                               (grad (eval-gradient function x))
                               (dot (%dot grad direction)))
   "Perform a line search using the backtracking
-algorithm. @c(Function) is a function to be minimized, @c(x) is a
+algorithm. @c(function) is a function to be minimized, @c(x) is a
 starting point for the search, @c(direction) is a search
 direction. Optionally, a precomputed gradient of the function at the
 point @c(x) can be supplied in @c(grad) and a dot product of the
@@ -81,13 +81,14 @@ gradient and the search direction can be supplied in @c(dot)."
                       (backtracking-options *default-backtracking-options*)
                       (ε 1d-6)
                       (max-steps 10000))
-  "Minimize a function using BFGS with backtracking line search
-algorithm. @c(Function) is a differentiable function to be minimized
-and @c(initial-approximation) is a MAGICL vector which contains a
-starting point for the search. The search stops when either the number
-of steps exceeds @c(max-steps) or L²-norm of the gradient is below
-@c(ε). This function returns a vector which minimizes @c(function), an
-approximation of Hessian at this point and a total number of steps."
+  "Minimize a function using BFGS with the backtracking line search
+algorithm. @c(F) is a function to be minimized, @c(G) is its gradient
+function and @c(initial-approximation) is a MAGICL vector which
+contains a starting point for the search. The search stops when either
+the number of steps exceeds @c(max-steps) or L²-norm of the gradient
+is below @c(ε). This function returns a vector which minimizes
+@c(F), an approximation of Hessian at this point and a total
+number of steps."
   (declare (optimize (speed 3)))
   (let* ((nvars (car (magicl:shape initial-approximation)))
          (id (magicl:eye (list nvars nvars) :type 'double-float)))

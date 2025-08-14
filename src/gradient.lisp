@@ -45,14 +45,12 @@ gradient in algorithms with momentum.")
                            (η              *η*)
                            (ε              *ε*)
                            (max-iterations *max-iterations*))
-  "Find minimum of a function using vanilla gradient descent.
+  "Find the minimum of a function using vanilla gradient descent.
 
-@c(function) takes a vector of values of type @c(cl-forward-diff:dual)
-and returns one value of type @c(cl-forward-diff:dual) (see
-documentation for cl-forward-diff). @c(start-point) must be a vector
-of double floats and serves as a starting point for the
-algorithm. @c(η) controls how fast the algorithm follows the gradient
-of the function.
+@c(grad) is the gradient of a function you want to
+optimize. @c(start-point) must be a vector of double floats and serves
+as a starting point for the algorithm. @c(η) controls how fast the
+algorithm follows the gradient of the function.
 
 The algorithm stops when either a number of iterations exceeds
 @c(max-iterations) or absolute value of every gradient component is
@@ -87,7 +85,7 @@ less than @c(ε)."
                                     (ε              *ε*)
                                     (β1             *β1*)
                                     (max-iterations *max-iterations*))
-  "Find minimum of a function using gradient descent with momentum.
+  "Find the minimum of a function using gradient descent with momentum.
 
 @c(β1) controls how fast the momentum decreases on a flat surface. For
 a description of other parameters, see @c(gradient-descent).
@@ -130,7 +128,7 @@ momentum component is less than @c(ε)."
               (ε              *ε*)
               (β1             *β1*)
               (max-iterations *max-iterations*))
-  "Find minimum of a function using Nesterov's advanced gradient
+  "Find the minimum of a function using Nesterov's advanced gradient
 descent algorithm. For a description of parameters see
 @c(gradient-descent) and @c(gradient-descent-momentum).
 
@@ -178,8 +176,8 @@ Exit criterion is the same as in @c(gradient-descent-momentum)."
                (β1             *β1*)
                (β2             *β2*)
                (max-iterations *max-iterations*))
-  "Find minimum of a function using Adam. @c(β2) is a parameter used
-in calculation of the second momentum of the gradient. For a
+  "Find the minimum of a function using Adam. @c(β2) is a parameter
+used in calculation of the second momentum of the gradient. For a
 description of other parameters see @c(gradient-descent) and
 @c(gradient-descent-momentum).
 
