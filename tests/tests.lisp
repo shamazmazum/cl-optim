@@ -182,9 +182,9 @@
 (test linear-irls-univariate
   (loop repeat 10000
         for a  = (+ (random 10d0) 3d-1)
-        for b  = (random 100d0)
+        for b  = (random 10d0)
         for p  = (+ (random 2d0) 1)
-        for n  = (+ (random 200) 100)
+        for n  = (+ (random 200) 2)
         for xs = (to-doubles (loop repeat n collect (random 100d0)))
         for ys = (map '(vector double-float)
                       (lambda (x noise) (+ (* x a) b noise))
@@ -194,8 +194,8 @@
         for β0 = (aref βs 0)
         for β1 = (aref βs 1)
 
-        for diff-min = (llsq-diff β0 β1 xs ys 2)
-        for diff     = (llsq-diff (+ β0 (random 1.5d0))
-                                  (+ β1 (random 1.5d0))
+        for diff-min = (llsq-diff β0 β1 xs ys p)
+        for diff     = (llsq-diff (+ β0 (random 1d0) -5d-1)
+                                  (+ β1 (random 1d0) -5d-1)
                                   xs ys p)
         do (is (> diff diff-min))))
