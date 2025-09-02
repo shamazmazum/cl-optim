@@ -51,7 +51,6 @@ direction. Optionally, a precomputed gradient of the function at the
 point @c(x) can be supplied in @c(grad) and a dot product of the
 gradient and the search direction can be supplied in @c(dot)."
   (declare (optimize (speed 3)))
-  (assert (> dot 0))
   (let ((%t (* (backtracking-options-c options) dot))
         (function-at-x (eval-function function x)))
     (labels ((%search (a step)
