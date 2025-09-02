@@ -29,6 +29,7 @@
    #:*β2*
    #:*max-iterations*
    #:*final-temperature*
+   #:*default-backtracking-options*
 
    ;; Run summary (simulated annealing)
    #:simulated-annealing-summary
