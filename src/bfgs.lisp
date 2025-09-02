@@ -35,30 +35,25 @@ is a maximal number of steps in the backtracking search.")
          (doubles->double
           magicl:vector/double-float
           magicl:vector/double-float
+          double-float
           &key
-          (:dot     double-float)
-          (:options backtracking-options)
-          (:grad    magicl:vector/double-float))
+          (:options backtracking-options))
          (values magicl:vector/double-float &optional))
-(defun backtracking-search (function x direction
-                            &key (options *default-backtracking-options*)
-                              (grad (eval-gradient function x))
-                              (dot (%dot grad direction)))
-  "Perform a line search using the backtracking
-algorithm. @c(function) is a function to be minimized, @c(x) is a
-starting point for the search, @c(direction) is a search
-direction. Optionally, a precomputed gradient of the function at the
-point @c(x) can be supplied in @c(grad) and a dot product of the
-gradient and the search direction can be supplied in @c(dot)."
+(defun backtracking-search (f x direction dot
+                            &key (options *default-backtracking-options*))
+  "Perform a line search using the backtracking algorithm. @c(f) is a
+function to be minimized, @c(x) is a starting point for the search,
+@c(direction) is a search direction. A dot product of the gradient and
+the search direction is supplied in @c(dot)."
   (declare (optimize (speed 3)))
   (let ((%t (* (backtracking-options-c options) dot))
-        (function-at-x (eval-function function x)))
+        (function-at-x (eval-function f x)))
     (labels ((%search (a step)
                (declare (type double-float a)
                         (type alex:non-negative-fixnum step))
                (let ((new-x (magicl:.- x (magicl:scale direction a))))
                  (if (or (= step (backtracking-options-max-steps options))
-                         (>= (- function-at-x (eval-function function new-x))
+                         (>= (- function-at-x (eval-function f new-x))
                              (* a %t)))
                      new-x (%search (* a (backtracking-options-τ options))
                                     (1+ step))))))
@@ -104,10 +99,8 @@ number of steps."
                             (h (if direction-ok-p h id))
                             (dot (if direction-ok-p
                                      dot (%dot anti-direction grad)))
-                            (new-x (backtracking-search f x anti-direction
-                                                        :options backtracking-options
-                                                        :grad grad
-                                                        :dot dot))
+                            (new-x (backtracking-search f x anti-direction dot
+                                                        :options backtracking-options))
                             (diff-x (magicl:.- new-x x))
                             (diff-grad (magicl:.- (eval-gradient g new-x) grad))
 
