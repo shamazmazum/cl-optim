@@ -8,7 +8,7 @@ jobs:
   doc:
     runs-on: ubuntu-latest
     env:
-      LISP: sbcl-bin
+      LISP: sbcl-bin/2.5.0
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -27,6 +27,11 @@ jobs:
         with:
           repository: shamazmazum/codex
           path: ~/.roswell/local-projects/codex
+      - name: Checkout docparser
+        uses: actions/checkout@v2
+        with:
+          repository: shamazmazum/docparser
+          path: ~/lisp/docparser
       - name: Build documentation
         run: |
           ros dynamic-space-size=8gb -s codex -e '(codex:document :cl-optim)'
