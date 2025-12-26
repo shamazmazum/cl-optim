@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+  Manual &ndash; cl-optim
+</title>
+    <link rel="stylesheet" href="static/style.css"/>
+    
+  <link rel="stylesheet" href="static/highlight.css"/>
+  <script src="static/highlight.js"></script>
+  <script src="static/load-mathjax.js" async></script>
+  <style>
+   /* Highlight the current top-level TOC item, and hide the TOC of all other items */
+
+   .toc a[data-node="index"] {
+       /*color: #AD3108;*/
+   }
+
+   .toc ol {
+       display: none;
+   }
+
+   .toc li a[data-node="index"] {
+       font-weight: bold;
+   }
+
+   .toc li a[data-node="index"] + ol {
+       display: block;
+   }
+
+   .toc li a[data-node="index"] + ol li {
+       margin-left: 10px;
+   }
+  </style>
+
+  </head>
+  <body>
+    
+  <h1 class="doc-title">cl-optim</h1>
+  <article id="article" data-section="index">
+    <aside>
+      <ol class="toc"><li><a href="index.html" data-node="index">Manual</a><ol><li><a href="index.html#gradient-based-algorithms" data-node="gradient-based-algorithms">Gradient-based algorithms</a></li><li><a href="index.html#algorithms-which-work-without-gradient" data-node="algorithms-which-work-without-gradient">Algorithms which work without gradient</a></li><li><a href="index.html#linear-least-squares" data-node="linear-least-squares">Linear least squares</a></li></ol></li><li><a href="api.html" data-node="api">API</a></li><li><a href="tips.html" data-node="tips">Tips</a></li><li><a href="more-examples.html" data-node="more-examples">More examples</a><ol><li><a href="solving-a-system-of-linear-equations.html" data-node="solving-a-system-of-linear-equations">Solving a system of linear equations</a></li></ol></li></ol>
+    </aside>
+    <main class="codex-section">
+      <header>
+        <h2 class="section-title">Manual</h2>
+      </header>
+      <div class="content">
+        <p>
+   CL-OPTIM system provides a collection of algorithms for minimizing real
+   functions of one or many arguments.</p><p>   Because Codex (the system with which this documentation is generated) cannot
+   add type annotations, it's important to mention that most of the algos in
+   this library will require a <i>gradient function</i> which is a function which
+   takes a simple array of double floats (arguments) and returns a simple array
+   of double floats (gradient values at this point) and/or a <i>target function</i>
+   which is to be minimized which takes a simple array of double floats and
+   returns a double float (its value at this point).</p><p>   </p><h1 id="gradient-based-algorithms">Gradient-based algorithms</h1><p>
+      These algorithms require a gradient function to be defined along with a
+      target function. A gradient function can be obtained automatically with
+      the help of my another library,
+      <a href="https://github.com/shamazmazum/cl-forward-diff">cl-forward-diff</a>,
+      but you can define it manually.</p><p>      For example, let's write a function which evaluates a polynomial at point
+      <code>x</code> given the polynomial coefficients <code>coeffs</code> and another function
+      which returns the gradient of the first function. For the sake of
+      automatic differentiation we must not use standard mathematical functions
+      from the <code>cl</code> package. Instead we must use functions from
+      <code>cl-forward-diff</code> package. If you mix them you will get either runtime
+      error or compile time error (depending on your implementation). You will
+      never get a wrong result, so don't worry about accidentally mixing these
+      functions. To minimize a probability of an error I recommend to define
+      differentiable functions in a separate package which shadows mathematical
+      functions from <code>cl</code> with ones provided by <code>cl-forward-diff</code>. Our
+      functions, <code>polynomial</code> and <code>polynomial-grad</code> can look like this:
+      </p><pre><code class="lisp">(defpackage polynomial
+  (:use #:cl)
+  (:local-nicknames (#:si   #:stateless-iterators)
+                    (#:diff #:cl-forward-diff))
+  #.(cl-forward-diff:shadowing-import-math)
+  (:export #:polynomial #:polynomial-gradient))
+(in-package :polynomial)
+
+(defun polynomial (coeffs x)
+  ;; Extract the first argument from the array of arguments
+  (let ((x (aref x 0)))
+    ;; Evaluate the polynomial at the point X
+    (si:foldl
+     #'+ 0
+     (si:imap (lambda (c n)
+                (* c (expt x n)))
+              (si:list-&gt;iterator coeffs)
+              (si:count-from 0)))))
+
+(defun polynomial-gradient (coeffs x)
+  ;; Use automatic differentiation to extract the value of derivative
+  ;; at the point X
+  (diff:ad-multivariate
+   (lambda (x)(polynomial coeffs x))
+   x))
+   </code></pre><p>      You can evaluate a polynomial, let it be \(f(x) = 1 + 2x + 3x^2\) at the
+      point \(x\)(let \(x = 2\)) and its first derivative \(f'(x) = 2 + 6x\)
+      like this (<code>to-doubles</code> is a helper which generates a simple array of
+      double floats from a sequence of reals):
+      </p><pre><code class="lisp">CL-USER&gt; (polynomial:polynomial '(1 2 3)(cl-forward-diff:to-doubles '(2)))
+17.0d0
+CL-USER&gt; (polynomial:polynomial-gradient '(1 2 3)(cl-forward-diff:to-doubles '(2)))
+#(14.0d0)
+      </code></pre><p>      Now when we have the gradient function, <code>polynomial-gradient</code>, we want
+      to find the minimum of our polynomial. We can use the simplest gradient
+      descent algorithm for this purpose. Try the following code in the REPL:
+      </p><pre><code class="lisp">CL-USER&gt; (cl-optim:gradient-descent
+ (lambda (x)(polynomial:polynomial-gradient '(1 2 3) x))
+ (cl-forward-diff:to-doubles '(1)))
+#(-0.3331670485897465d0)
+2992
+      </code></pre><p>
+      The first argument of <code>gradient-descent</code> is the gradient of a function
+      to be minimized. The second argument is a starting point for a
+      search. Because our function is convex, just every starting point will do.</p><p>      The first returned value is the found minimum and the second is the number
+      of steps required to find that minimum. You can use a better algorithm to
+      reduce the number of steps:
+      </p><pre><code class="lisp">CL-USER&gt; (cl-optim:nag
+ (lambda (x)(polynomial:polynomial-gradient '(1 2 3) x))
+ (cl-forward-diff:to-doubles '(1)))
+#(-0.3331680985581683d0)
+136
+      </code></pre><p>      Just another example of minimizing a function of two variables (Rosenbrock
+      function with parameters <code>a = 2</code> and <code>b = 100</code>).
+      </p><pre><code class="lisp">(defpackage rosenbrock
+  (:use #:cl)
+  (:local-nicknames (#:diff #:cl-forward-diff))
+  #.(cl-forward-diff:shadowing-import-math)
+  (:export #:rosenbrock))
+(in-package :rosenbrock)
+
+(defun rosenbrock (xs)
+  (let ((x (aref xs 0))
+        (y (aref xs 1)))
+    (+ (expt (- 2 x) 2)
+       (* 100 (expt (- y (expt x 2)) 2)))))
+
+(defun rosenbrock-gradient (x)
+  (diff:ad-multivariate #'rosenbrock x))
+      </code></pre><p>
+      Evaluate in the REPL:
+      </p><pre><code class="lisp">CL-USER&gt; (cl-optim:nag #'rosenbrock:rosenbrock
+                       (cl-forward-diff:to-doubles '(-1 1))
+                       :η  1d-4
+                       :ε  1d-5
+                       :β1 0.99d0)
+#(1.9999787688313526d0 3.9999150258343437d0)
+6693
+      </code></pre><p>
+      Here I overrided some default parameters <code>β1</code>, <code>ε</code> and <code>η</code>. For more
+      information see <a id="api" href="api.html" data-node="api">API</a> section.</p><p>      The best algorithm is BFGS:
+      </p><pre><code class="lisp">      CL-USER&gt; (cl-optim:bfgs #'rosenbrock:rosenbrock #'rosenbrock:rosenbrock-gradient
+                       (cl-forward-diff:to-doubles '(-1 1)))
+#(2.000000000000671d0 4.000000000002626d0)
+#&lt;MAGICL:MATRIX/DOUBLE-FLOAT (2x2):
+  3192.251    -797.639
+  -797.639    199.428&gt;
+40
+      </code></pre><p>
+   </p><p>   </p><h1 id="algorithms-which-work-without-gradient">Algorithms which work without gradient</h1><p>      Currently there is only one algorithm in <code>cl-optim</code> which can optimize
+      non-differentiable functions: simulated annealing. Let's minimize the
+      following function:</p><p>      </p><pre><code class="lisp">(defun noise-sinc (x)
+  (declare (type double-float x))
+  ;; Here all math function are from CL package.
+  (let ((x-shift (- x 4)))
+    (- (random 2d-1)
+       (if (zerop x-shift) 1d0
+           (/ (sin (* 5 x-shift)) x-shift)))))
+      </code></pre><p>      This is a <i>sinc</i> function subtracted from a random noise with a small
+      amplitude. This function can not be differentiated due to this noise. Now
+      try this in the REPL:</p><p>      </p><pre><code class="lisp">CL-USER&gt; (cl-optim:simulated-annealing
+          (alexandria:compose #'noise-sinc
+                              (alexandria:rcurry #'aref 0))
+          (cl-forward-diff:to-doubles '(15)))
+#(4.0656966038580755d0)
+#S(CL-OPTIM:SIMULATED-ANNEALING-SUMMARY
+   :TEMPERATURE 9.99734336301017d-5
+   :ITERATIONS 27764
+   :MINIMIZING-STEPS 8247
+   :REJECTED-STEPS 18558)
+      </code></pre><p>      The minimum is around the point <code>(4d0)</code>. As you can see, this method
+      does a big amount of evaluations of the function, but it does not require
+      the function to be differentiable.
+   </p><p>   </p><h1 id="linear-least-squares">Linear least squares</h1><p>
+   You can solve linear least squares fit problem with <code>cl-optim</code>. Suppose you
+   have a vector of arguments of some function (x'es) and function of values
+   (y's). You can approximate that function with a linear function like so:
+</p><pre><code class="lisp">CL-USER&gt; (cl-optim:linear-least-squares
+          (cl-forward-diff:to-doubles '(1 2 3))
+          (cl-forward-diff:to-doubles '(1 2 4)))
+#(0.6428571428571426d0 0.4999999999999998d0)
+0.07142857142857147d0
+</code></pre><p>   Your linear approximation is \(f(x) = 0.64 x + 0.5\). The second value is
+   the sum of squared differences between \(f(x)\) and supplied \(y\). When
+   a number of samples is 2, the second value is zero:
+</p><pre><code class="lisp">CL-USER&gt; (cl-optim:linear-least-squares
+          (cl-forward-diff:to-doubles '(1 3))
+          (cl-forward-diff:to-doubles '(1 5)))
+#(0.5d0 0.5d0)
+0.0d0
+</code></pre><p>
+   Indeed, \(1 \cdot \frac{1}{2} + \frac{1}{2} = 1\) and \(5 \cdot \frac{1}{2} +
+   \frac{1}{2} = 3\).</p><p>   Multivariate problem can also be solved:
+</p><pre><code class="lisp">CL-USER&gt; (cl-optim:linear-least-squares
+          (cl-forward-diff:to-doubles '(1 2 6))
+          (cl-forward-diff:to-doubles '(1 2 2))
+          (cl-forward-diff:to-doubles '(1 2 1)))
+#(4.9999999999999964d0 -3.999999999999991d0 -1.0658141036401503d-14)
+1.072850831100576d-28
+</code></pre><p>
+   which corresponds to the function \(f(x_0, x_1) = 5 x_0 - 4 x_1\). Indeed, we
+   have \(5 \cdot 1 - 4 \cdot 1 = 1\), \(5 \cdot 2 - 4 \cdot 2 = 2\) and \(5
+   \cdot 2 - 4 \cdot 1 = 6\).
+   </p><p>
+</p>
+      </div>
+    </main>
+  </article>
+  <footer>
+    <div class="info">
+      Created with <a href="https://github.com/CommonDoc/codex">Codex</a>.
+    </div>
+  </footer>
+  <script>
+   HighlightLisp.highlight_auto();
+  </script>
+
+  </body>
+</html>
