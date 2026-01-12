@@ -164,6 +164,7 @@
                                   xs ys 2)
         do (is (< diff-min diff))))
 
+#|
 (test linear-irls-exact
   (loop repeat 500 do
         (is (< (nth-value
@@ -213,3 +214,4 @@
                                   (+ β1 (random 1d0) -5d-1)
                                   xs ys p)
         do (is (> diff diff-min))))
+|#

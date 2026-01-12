@@ -11,32 +11,12 @@
 
 (declaim (inline mult-mv))
 (defun mult-mv (m v)
-  (let ((length (length v)))
-    (em:reshape
-     (em:mult
-      m (em:reshape-unsafe v (list length 1)))
-     (list length))))
+  (let* ((rows (array-dimension m 0))
+         (cols (array-dimension m 1))
+         (mul (em:mult m (em:reshape-unsafe v (list cols 1)))))
+    (em:reshape mul (list rows))))
 
 ;; Helper functions
-(sera:-> %dot (magicl:vector/double-float
-               magicl:vector/double-float)
-         (values double-float &optional))
-(declaim (inline %dot))
-(defun %dot (v1 v2)
-  (magicl:dot v1 v2))
-
-(sera:-> %norm (magicl:vector/double-float)
-         (values double-float &optional))
-(declaim (inline %norm))
-(defun %norm (v)
-  (magicl:norm v))
-
-(sera:-> %storage (magicl:vector/double-float)
-         (values (%vector double-float) &optional))
-(declaim (inline %storage))
-(defun %storage (xs)
-  (magicl::storage xs))
-
 (sera:-> column-*-row ((vector double-float)
                        (vector double-float))
          (values (matrix double-float) &optional))
@@ -46,28 +26,19 @@
    (em:reshape-unsafe c (list (length c) 1))
    (em:reshape-unsafe r (list 1 (length r)))))
 
-(sera:-> to-magicl-vector ((simple-array double-float (*)))
-         (values magicl:vector/double-float &optional))
-(declaim (inline to-magicl-vector))
-(defun to-magicl-vector (vector)
-  "Convert a lisp vector to magicl vector (no copy)."
-  (magicl:make-tensor 'magicl:vector/double-float
-                      (list (length vector))
-                      :storage vector))
-
-(sera:-> diag-*-matrix (magicl:vector/double-float
-                        magicl:matrix/double-float)
-         (values magicl:matrix/double-float &optional))
+#|
+(sera:-> diag-*-matrix ((vector double-float)
+                        (matrix double-float))
+         (values (matrix double-float) &optional))
 (defun diag-*-matrix (diag matrix)
-  "Convert a magicl vector to a diagonal matrix."
   (declare (optimize (speed 3)))
-  (let* ((shape (magicl:shape matrix))
-         (result (magicl:zeros shape :type 'double-float)))
-    (assert (= (the fixnum (magicl:size diag))
-               (the fixnum (first shape))))
-    (loop for i fixnum below (first shape) do
-          (loop for j fixnum below (second shape) do
-                (setf (magicl:tref result i j)
-                      (* (magicl:tref matrix i j)
-                         (magicl:tref diag i)))))
+  (assert (= (length diag) (array-dimension matrix 0)))
+  (let ((result (make-array (array-dimensions matrix)
+                            :element-type 'double-float)))
+    (loop for i fixnum below (array-dimension matrix 0) do
+      (loop for j fixnum below (array-dimension matrix 1) do
+        (setf (aref result i j)
+              (* (aref matrix i j)
+                 (aref diag i)))))
     result))
+|#

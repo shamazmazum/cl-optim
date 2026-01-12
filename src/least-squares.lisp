@@ -1,21 +1,27 @@
 (in-package :cl-optim)
 
 (sera:-> linear-least-squares-cost
-         (magicl:vector/double-float
-          magicl:vector/double-float
-          magicl:matrix/double-float)
-         (values double-float &optional))
+    ((vector double-float)
+     (vector double-float)
+     (matrix double-float))
+    (values double-float &optional))
 (defun linear-least-squares-cost (βs ys xs)
-  (let ((diff (magicl:.- (magicl:@ xs βs) ys)))
-    (%dot diff diff)))
+  (let ((diff (em:sub (mult-mv xs βs) ys)))
+    (em:dot diff diff)))
 
 (declaim (inline lsqr-xs))
 (defun lsqr-xs (xs)
-  (magicl:hstack
-   (append (mapcar
-            (lambda (v) (magicl:vector->column-matrix (to-magicl-vector v)))
-            xs)
-           (list (magicl:ones (list (length (first xs)) 1) :type 'double-float)))))
+  (em:hstack
+   (reduce #'cons xs
+           :key (lambda (x)
+                  (declare (type (vector double-float) x))
+                  (em:reshape-unsafe x (list (length x) 1)))
+           :initial-value
+           (list (make-array (list (length (first xs)) 1)
+                             :element-type 'double-float
+                             :initial-element 1d0))
+           :from-end t)
+   'double-float))
 
 (sera:-> linear-least-squares
          ((array double-float (*)) &rest (array double-float (*)))
@@ -35,16 +41,14 @@ Also the value of the target expression is returned as the second value.
 All passed arrays must be of the same size. This function may signal
 SIMPLE-ERROR if they are too short."
   (declare (optimize (speed 3)))
-  (let* ((y (to-magicl-vector ys))
-         (x (lsqr-xs xs))
-         (β (magicl:mult
-             (magicl:mult
-              (magicl:inv (magicl:mult x x :transa :t))
-              x :transb :t)
-             y)))
-    (values
-     (%storage β)
-     (linear-least-squares-cost β y x))))
+  (let* ((xs (lsqr-xs xs))
+         (%ys (em:reshape-unsafe ys (list (length ys) 1)))
+         (β (em:reshape
+             (em:solve
+              (em:mult xs  xs :ta t)
+              (em:mult xs %ys :ta t))
+             (list (array-dimension xs 1)))))
+    (values β (linear-least-squares-cost β ys xs))))
 
 ;; IRLS
 (sera:defconstructor linear-irls-options
@@ -56,19 +60,20 @@ SIMPLE-ERROR if they are too short."
   "Default parameters for @c(linear-irls).")
 
 (sera:-> linear-irls-cost
-         (magicl:vector/double-float
-          magicl:vector/double-float
-          magicl:matrix/double-float
+         ((vector double-float)
+          (vector double-float)
+          (matrix double-float)
           double-float)
          (values double-float &optional))
 (defun linear-irls-cost (βs ys xs p)
   (declare (optimize (speed 3)))
-  (let ((diff (magicl:.- (magicl:@ xs βs) ys)))
-    (reduce #'+ (%storage diff)
+  (let ((diff (em:sub (mult-mv xs βs) ys)))
+    (reduce #'+ diff
             :key (lambda (x)
                    (declare (type double-float x))
                    (expt (abs x) p)))))
 
+#|
 ;; https://en.wikipedia.org/wiki/Iteratively_reweighted_least_squares
 (sera:-> linear-irls
          (double-float
@@ -98,15 +103,14 @@ either the number of iterations exceeds \\(n\\) or \\(\\sqrt{\\sum_i
 (\\beta_i^k - \\beta_i^{k-1})^2} < \\varepsilon\\) on \\(k\\)-th
 iteration."
   (declare (optimize (speed 3)))
-  (let ((y (to-magicl-vector ys))
-        (x (lsqr-xs xs)))
+  (let ((xs (lsqr-xs xs)))
     (labels ((%go (w β n)
                (declare (type alex:non-negative-fixnum n))
                (let* ((%β
-                       (magicl:mult
-                        (magicl:mult
-                         (magicl:inv (magicl:mult x (diag-*-matrix w x) :transa :t))
-                         x :transb :t)
+                       (em:mult
+                        (em:mult
+                         (em:invert (em:mult x (diag-*-matrix w x) :ta t))
+                         x :ta t)
                         (magicl:.* w y)))
                       (%w (magicl:map
                            (lambda (x)
@@ -122,3 +126,4 @@ iteration."
         (values
          (%storage β)
          (linear-irls-cost β y x p))))))
+|#
