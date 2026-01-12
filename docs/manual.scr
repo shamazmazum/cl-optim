@@ -232,7 +232,7 @@ CL-USER> (cl-optim:linear-least-squares
    @cl:with-package[name="cl-optim"](
       @cl:doc(function bfgs)
       @cl:doc(function bfgs/magicl)
-      @cl:doc(function backtracking-options)
+      @cl:doc(defconstructor backtracking-options)
    )
    @u(Least squares fit)
    @cl:with-package[name="cl-optim"](

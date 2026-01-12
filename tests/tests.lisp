@@ -7,6 +7,18 @@
     (explain! status)
     (results-status status)))
 
+(declaim (inline random-vector))
+(defun random-vector (n)
+  (make-array n
+              :element-type 'double-float
+              :initial-contents (loop repeat n collect (random 1d0))))
+
+(declaim (inline sub-scalar))
+(defun sub-scalar (a s)
+  (map '(vector double-float)
+       (lambda (x) (- x s))
+       a))
+
 (defun closep (result expected &optional (tolerance 5d-3))
   (every
    (lambda (x y) (< (abs (- x y)) tolerance))
@@ -94,11 +106,13 @@
        2)))
 
 (test bfgs
-  (loop with expected = (magicl:ones '(3))
+  (loop with expected = (make-array 3
+                                    :element-type 'double-float
+                                    :initial-element 1d0)
         repeat 1000
-        for vector = (magicl:.- (magicl:scale (magicl:rand '(3)) 40) 20) do
-        (is (< (magicl:norm
-                (magicl:.- (bfgs/magicl #'rosenbrock #'rosenbrock-grad vector) expected))
+        for vector = (sub-scalar (em:scale (random-vector 3) 40d0) 20d0) do
+        (is (< (em:norm
+                (em:sub (bfgs #'rosenbrock #'rosenbrock-grad vector) expected))
                1d-4))))
 
 (defun llsq-diff (a b xs ys p)

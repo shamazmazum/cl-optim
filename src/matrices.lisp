@@ -1,5 +1,22 @@
 (in-package :cl-optim)
 
+(declaim (inline eye))
+(defun eye (n)
+  (let ((result (make-array (list n n)
+                            :element-type 'double-float
+                            :initial-element 0d0)))
+    (loop for i below n do
+      (setf (aref result i i) 1d0))
+    result))
+
+(declaim (inline mult-mv))
+(defun mult-mv (m v)
+  (let ((length (length v)))
+    (em:reshape
+     (em:mult
+      m (em:reshape-unsafe v (list length 1)))
+     (list length))))
+
 ;; Helper functions
 (sera:-> %dot (magicl:vector/double-float
                magicl:vector/double-float)
@@ -20,14 +37,14 @@
 (defun %storage (xs)
   (magicl::storage xs))
 
-(sera:-> column-*-row (magicl:vector/double-float
-                       magicl:vector/double-float)
-         (values magicl:matrix/double-float &optional))
+(sera:-> column-*-row ((vector double-float)
+                       (vector double-float))
+         (values (matrix double-float) &optional))
 (declaim (inline column-*-row))
 (defun column-*-row (c r)
-  (magicl:@
-   (magicl:vector->column-matrix c)
-   (magicl:vector->row-matrix    r)))
+  (em:mult
+   (em:reshape-unsafe c (list (length c) 1))
+   (em:reshape-unsafe r (list 1 (length r)))))
 
 (sera:-> to-magicl-vector ((simple-array double-float (*)))
          (values magicl:vector/double-float &optional))

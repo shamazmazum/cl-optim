@@ -13,7 +13,7 @@
                (:file "bfgs")
                (:file "annealing")
                (:file "least-squares"))
-  :depends-on (:magicl :serapeum :alexandria)
+  :depends-on (:magicl :serapeum :alexandria :entzauberte-matrices)
   :in-order-to ((test-op (load-op "cl-optim/tests")))
   :perform (test-op (op system)
                     (declare (ignore op system))

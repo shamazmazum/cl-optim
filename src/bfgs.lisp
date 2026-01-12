@@ -1,31 +1,27 @@
 (in-package :cl-optim)
 
-(sera:-> eval-function (doubles->double magicl:vector/double-float)
+(sera:-> eval-function (doubles->double (vector double-float))
          (values double-float &optional))
 (defun eval-function (f x)
   (declare (optimize (speed 3)))
-  (funcall f (%storage x)))
+  (funcall f x))
 
-(sera:-> eval-gradient (doubles->doubles magicl:vector/double-float)
-         (values magicl:vector/double-float &optional))
+(sera:-> eval-gradient (doubles->doubles (vector double-float))
+         (values (vector double-float) &optional))
 (defun eval-gradient (f x)
   (declare (optimize (speed 3)))
-  (magicl:make-tensor
-   'magicl:vector/double-float (magicl:shape x)
-   :storage (funcall f (%storage x))))
+  (funcall f x))
 
 ;; Backtracking line search
 (sera:defconstructor backtracking-options
+  "Create backtracking line search options. @c(Η) is an initial
+step in the search direction. @c(Τ) is a multiplier of the seach step
+at each iteraction. @c(C) is a constant in Armijo rule. @c(MAX-STEPS)
+is a maximal number of steps in the backtracking search."
   (η double-float)
   (τ double-float)
   (c double-float)
   (max-steps alex:positive-fixnum))
-
-(setf (documentation 'backtracking-options 'function)
-      "Create backtracking line search options. @c(Η) is an initial
-step in the search direction. @c(Τ) is a multiplier of the seach step
-at each iteraction. @c(C) is a constant in Armijo rule. @c(MAX-STEPS)
-is a maximal number of steps in the backtracking search.")
 
 (defparameter *default-backtracking-options*
   (backtracking-options 1d0 9d-1 5d-1 120)
@@ -33,12 +29,12 @@ is a maximal number of steps in the backtracking search.")
 
 (sera:-> backtracking-search
          (doubles->double
-          magicl:vector/double-float
-          magicl:vector/double-float
+          (vector double-float)
+          (vector double-float)
           double-float
           &key
           (:options backtracking-options))
-         (values magicl:vector/double-float &optional))
+         (values (vector double-float) &optional))
 (defun backtracking-search (f x direction dot
                             &key (options *default-backtracking-options*))
   "Perform a line search using the backtracking algorithm. @c(f) is a
@@ -51,7 +47,7 @@ the search direction is supplied in @c(dot)."
     (labels ((%search (a step)
                (declare (type double-float a)
                         (type alex:non-negative-fixnum step))
-               (let ((new-x (magicl:.- x (magicl:scale direction a))))
+               (let ((new-x (em:sub x (em:scale direction a))))
                  (if (or (= step (backtracking-options-max-steps options))
                          (>= (- function-at-x (eval-function f new-x))
                              (* a %t)))
@@ -60,91 +56,58 @@ the search direction is supplied in @c(dot)."
       (%search (backtracking-options-η options) 0))))
 
 ;; BFGS algorithm
-(sera:-> bfgs/magicl
-         (doubles->double
-          doubles->doubles
-          magicl:vector/double-float &key
-          (:ε double-float)
-          (:max-steps alex:positive-fixnum)
-          (:backtracking-options backtracking-options))
-         (values magicl:vector/double-float
-                 magicl:matrix/double-float
-                 alex:non-negative-fixnum &optional))
-(defun bfgs/magicl (f g initial-approximation
-                    &key
-                      (backtracking-options *default-backtracking-options*)
-                      (ε 1d-6)
-                      (max-steps 10000))
-  "Minimize a function using BFGS with the backtracking line search
-algorithm. @c(F) is a function to be minimized, @c(G) is its gradient
-function and @c(initial-approximation) is a MAGICL vector which
-contains a starting point for the search. The search stops when either
-the number of steps exceeds @c(max-steps) or L²-norm of the gradient
-is below @c(ε). This function returns a vector which minimizes
-@c(F), an approximation of Hessian at this point and a total
-number of steps."
-  (declare (optimize (speed 3)))
-  (let* ((nvars (car (magicl:shape initial-approximation)))
-         (id (magicl:eye (list nvars nvars) :type 'double-float)))
-    (labels ((%iteration (x h step)
-               (declare (type alex:non-negative-fixnum step))
-               (let ((grad (eval-gradient g x)))
-                 (if (or (< (%norm grad) ε)
-                         (= step max-steps))
-                     (values x (magicl:inv h) step)
-                     (let* ((anti-direction (magicl:@ h grad))
-                            (dot (%dot anti-direction grad))
-                            (direction-ok-p (> dot 0))
-                            (anti-direction (if direction-ok-p anti-direction grad))
-                            (h (if direction-ok-p h id))
-                            (dot (if direction-ok-p
-                                     dot (%dot anti-direction grad)))
-                            (new-x (backtracking-search f x anti-direction dot
-                                                        :options backtracking-options))
-                            (diff-x (magicl:.- new-x x))
-                            (diff-grad (magicl:.- (eval-gradient g new-x) grad))
-
-                            (tmp1 (%dot diff-x diff-grad))
-                            (tmp2 (%dot diff-grad (magicl:@ h diff-grad)))
-
-                            (diff-h (magicl:.-
-                                     (magicl:scale
-                                      (column-*-row diff-x diff-x)
-                                      (/ (+ tmp1 tmp2) (expt tmp1 2)))
-                                     (magicl:scale
-                                      (magicl:.+
-                                       (magicl:@ h (column-*-row diff-grad diff-x))
-                                       (magicl:@ (column-*-row diff-x diff-grad) h))
-                                      (/ tmp1)))))
-
-                       (%iteration new-x (magicl:.+ h diff-h) (1+ step)))))))
-      (%iteration initial-approximation id 0))))
-
-(sera:-> bfgs
-         (doubles->double
-          doubles->doubles
-          (%vector double-float)
-          &key
-          (:ε double-float)
-          (:max-steps alex:positive-fixnum)
-          (:backtracking-options backtracking-options))
-         (values (%vector double-float)
-                 magicl:matrix/double-float
+(sera:-> bfgs (doubles->double doubles->doubles
+               (vector double-float) &key
+               (:ε double-float)
+               (:max-steps alex:positive-fixnum)
+               (:backtracking-options backtracking-options))
+         (values (vector double-float)
+                 (matrix double-float)
                  alex:non-negative-fixnum &optional))
 (defun bfgs (f g initial-approximation
              &key
                (backtracking-options *default-backtracking-options*)
                (ε 1d-6)
                (max-steps 10000))
-  "BFGS variant which works with native Common Lisp arrays. See
-@c(bfgs/magicl) for detailed documentation."
+  "Minimize a function using BFGS with the backtracking line search
+algorithm. @c(F) is a function to be minimized, @c(G) is its gradient
+function and @c(initial-approximation) is a vector which contains a
+starting point for the search. The search stops when either the number
+of steps exceeds @c(max-steps) or L²-norm of the gradient is below
+@c(ε). This function returns a vector which minimizes @c(F), an
+approximation of Hessian at this point and a total number of steps."
   (declare (optimize (speed 3)))
-  (multiple-value-bind (min hessian steps)
-      (bfgs/magicl
-       f g (to-magicl-vector initial-approximation)
-       :backtracking-options backtracking-options
-       :ε ε
-       :max-steps max-steps)
-    (values
-     (magicl::storage min)
-     hessian steps)))
+  (let* ((nvars (length initial-approximation))
+         (id (eye nvars)))
+    (labels ((%iteration (x h step)
+               (declare (type alex:non-negative-fixnum step))
+               (let ((grad (eval-gradient g x)))
+                 (if (or (< (em:norm grad) ε)
+                         (= step max-steps))
+                     (values x (em:invert h) step)
+                     (let* ((anti-direction (mult-mv h grad))
+                            (dot (em:dot anti-direction grad))
+                            (direction-ok-p (> dot 0))
+                            (anti-direction (if direction-ok-p anti-direction grad))
+                            (h (if direction-ok-p h id))
+                            (dot (if direction-ok-p
+                                     dot (em:dot anti-direction grad)))
+                            (new-x (backtracking-search f x anti-direction dot
+                                                        :options backtracking-options))
+                            (diff-x (em:sub new-x x))
+                            (diff-grad (em:sub (eval-gradient g new-x) grad))
+
+                            (tmp1 (em:dot diff-x diff-grad))
+                            (tmp2 (em:dot diff-grad (mult-mv h diff-grad)))
+
+                            (diff-h (em:sub
+                                     (em:scale
+                                      (column-*-row diff-x diff-x)
+                                      (/ (+ tmp1 tmp2) (expt tmp1 2)))
+                                     (em:scale
+                                      (em:add
+                                       (em:mult h (column-*-row diff-grad diff-x))
+                                       (em:mult (column-*-row diff-x diff-grad) h))
+                                      (/ tmp1)))))
+                       (%iteration new-x (em:add h diff-h) (1+ step)))))))
+      (%iteration initial-approximation id 0))))

@@ -1,6 +1,8 @@
 (in-package :cl-optim)
 
 (deftype %vector (type) `(simple-array ,type (*)))
+(deftype vector (type) `(%vector ,type))
+(deftype matrix (type) `(simple-array ,type (* *)))
 (deftype single-unit-range () '(double-float 0d0 1d0))
 (deftype doubles->double ()
   '(sera:-> ((%vector double-float)) (values double-float &optional)))

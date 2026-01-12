@@ -21,4 +21,5 @@
         #:cl-optim-tests-fn-diff)
   (:import-from #:cl-forward-diff
                 #:to-doubles)
+  (:local-nicknames (#:em #:entzauberte-matrices))
   (:export #:run-tests))

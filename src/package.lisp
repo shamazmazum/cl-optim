@@ -1,7 +1,9 @@
 (defpackage cl-optim
   (:use #:cl)
+  (:shadow #:cl #:vector)
   (:local-nicknames (#:sera #:serapeum)
-                    (#:alex #:alexandria))
+                    (#:alex #:alexandria)
+                    (#:em   #:entzauberte-matrices))
   (:export
    ;; Gradient based
    #:gradient-descent
@@ -10,7 +12,7 @@
    #:adam
 
    ;; Gradient based with Hessian approximation
-   #:bfgs #:bfgs/magicl #:backtracking-options
+   #:bfgs #:backtracking-options
 
    ;; Least squares
    #:linear-least-squares
