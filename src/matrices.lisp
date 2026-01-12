@@ -11,10 +11,8 @@
 
 (declaim (inline mult-mv))
 (defun mult-mv (m v)
-  (let* ((rows (array-dimension m 0))
-         (cols (array-dimension m 1))
-         (mul (em:mult m (em:reshape-unsafe v (list cols 1)))))
-    (em:reshape mul (list rows))))
+  (em:column
+   (em:mult m (em:vector->column-unsafe v)) 0))
 
 ;; Helper functions
 (sera:-> column-*-row ((vector double-float)
@@ -23,8 +21,8 @@
 (declaim (inline column-*-row))
 (defun column-*-row (c r)
   (em:mult
-   (em:reshape-unsafe c (list (length c) 1))
-   (em:reshape-unsafe r (list 1 (length r)))))
+   (em:vector->column-unsafe c)
+   (em:vector->row-unsafe    r)))
 
 #|
 (sera:-> diag-*-matrix ((vector double-float)

@@ -10,14 +10,14 @@
     (em:dot diff diff)))
 
 (declaim (inline lsqr-xs))
-(defun lsqr-xs (xs)
+(defun lsqr-xs (xs length)
   (em:hstack
    (reduce #'cons xs
            :key (lambda (x)
                   (declare (type (vector double-float) x))
-                  (em:reshape-unsafe x (list (length x) 1)))
+                  (em:vector->column-unsafe x))
            :initial-value
-           (list (make-array (list (length (first xs)) 1)
+           (list (make-array (list length 1)
                              :element-type 'double-float
                              :initial-element 1d0))
            :from-end t)
@@ -41,16 +41,17 @@ Also the value of the target expression is returned as the second value.
 All passed arrays must be of the same size. This function may signal
 SIMPLE-ERROR if they are too short."
   (declare (optimize (speed 3)))
-  (let* ((xs (lsqr-xs xs))
-         (%ys (em:reshape-unsafe ys (list (length ys) 1)))
-         (β (em:reshape
+  (let* ((xs (lsqr-xs xs (length ys)))
+         (%ys (em:vector->column-unsafe ys))
+         (β (em:column
              (em:solve
               (em:mult xs  xs :ta t)
               (em:mult xs %ys :ta t))
-             (list (array-dimension xs 1)))))
+             0)))
     (values β (linear-least-squares-cost β ys xs))))
 
 ;; IRLS
+#|
 (sera:defconstructor linear-irls-options
   (ε double-float)
   (n alex:positive-fixnum))
@@ -73,7 +74,6 @@ SIMPLE-ERROR if they are too short."
                    (declare (type double-float x))
                    (expt (abs x) p)))))
 
-#|
 ;; https://en.wikipedia.org/wiki/Iteratively_reweighted_least_squares
 (sera:-> linear-irls
          (double-float
