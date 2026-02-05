@@ -51,7 +51,6 @@ SIMPLE-ERROR if they are too short."
     (values β (linear-least-squares-cost β ys xs))))
 
 ;; IRLS
-#|
 (sera:defconstructor linear-irls-options
   (ε double-float)
   (n alex:positive-fixnum))
@@ -73,6 +72,21 @@ SIMPLE-ERROR if they are too short."
             :key (lambda (x)
                    (declare (type double-float x))
                    (expt (abs x) p)))))
+
+(sera:-> diag-*-matrix ((simple-array double-float (*))
+                        (simple-array double-float (* *)))
+         (values (simple-array double-float (* *)) &optional))
+(defun diag-*-matrix (d m)
+  (declare (optimize (speed 3)))
+  (assert (= (array-dimension m 0) (length d)))
+  (let ((result (make-array (array-dimensions m)
+                            :element-type 'double-float)))
+    (loop for i below (array-dimension result 0) do
+      (loop for j below (array-dimension result 1) do
+        (setf (aref result i j)
+              (* (aref m i j)
+                 (aref d i)))))
+    result))
 
 ;; https://en.wikipedia.org/wiki/Iteratively_reweighted_least_squares
 (sera:-> linear-irls
@@ -103,27 +117,30 @@ either the number of iterations exceeds \\(n\\) or \\(\\sqrt{\\sum_i
 (\\beta_i^k - \\beta_i^{k-1})^2} < \\varepsilon\\) on \\(k\\)-th
 iteration."
   (declare (optimize (speed 3)))
-  (let ((xs (lsqr-xs xs)))
+  (let ((xs (lsqr-xs xs (length ys))))
     (labels ((%go (w β n)
                (declare (type alex:non-negative-fixnum n))
-               (let* ((%β
-                       (em:mult
-                        (em:mult
-                         (em:invert (em:mult x (diag-*-matrix w x) :ta t))
-                         x :ta t)
-                        (magicl:.* w y)))
-                      (%w (magicl:map
-                           (lambda (x)
-                             (declare (type double-float x))
-                             (expt (max 1d-4 (abs x)) (- p 2)))
-                           (magicl:.- y (magicl:mult x %β)))))
+               (let* ((%β (em:column
+                           (em:mult
+                            (em:mult
+                             (em:invert (em:mult xs (diag-*-matrix w xs) :ta t))
+                             xs :tb t)
+                            (em:vector->column
+                             (map '(vector double-float) #'* w ys)))
+                           0))
+                      (%w (map
+                           '(vector double-float)
+                           (lambda (x y)
+                             (expt (max 1d-4 (abs (- x y))) (- p 2)))
+                           ys (em:column (em:mult xs (em:vector->column %β)) 0))))
                  (if (or (= n (linear-irls-options-n opt))
                          (and (not (zerop n))
-                              (< (%norm (magicl:.- β %β))
+                              (< (em:norm (map '(vector double-float) #'- β %β))
                                  (linear-irls-options-ε opt))))
                      %β (%go %w %β (1+ n))))))
-      (let ((β (%go (magicl:ones (list (length ys)) :type 'double-float) nil 0)))
+      (let ((β (%go (make-array (length ys)
+                                :element-type 'double-float
+                                :initial-element 1d0)
+                    nil 0)))
         (values
-         (%storage β)
-         (linear-irls-cost β y x p))))))
-|#
+         β (linear-irls-cost β ys xs p))))))
