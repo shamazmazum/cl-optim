@@ -1,5 +1,8 @@
 (defun do-all()
-  (ql:quickload :cl-optim/tests :verbose t)
+  (handler-case
+      (asdf:load-system :cl-optim/tests)
+    (error ()
+      (uiop:quit 1)))
   (setq *random-state* (make-random-state t))
   (uiop:quit
    (if (uiop:call-function "cl-optim-tests:run-tests")

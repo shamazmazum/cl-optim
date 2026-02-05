@@ -30,3 +30,7 @@
                (:file "functions")
                (:file "tests"))
   :depends-on (:fiveam :cl-optim :stateless-iterators :cl-forward-diff))
+
+;; For qlot
+(defsystem cl-optim/docs
+    :depends-on (:cl-optim :codex))

@@ -1,0 +1,36 @@
+("quicklisp" .
+ (:class qlot/source/dist:source-dist
+  :initargs (:distribution "https://beta.quicklisp.org/dist/quicklisp.txt" :%version :latest)
+  :version "2026-01-01"))
+("alexandria" .
+ (:class qlot/source/ql:source-ql
+  :initargs (:%version :latest)
+  :version "ql-2024-10-12"))
+("serapeum" .
+ (:class qlot/source/ql:source-ql
+  :initargs (:%version :latest)
+  :version "ql-2026-01-01"))
+("stateless-iterators" .
+ (:class qlot/source/ql:source-ql
+  :initargs (:%version :latest)
+  :version "ql-2025-06-22"))
+("cl-forward-diff" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "shamazmazum/cl-forward-diff" :ref nil :branch nil :tag "v0.6")
+  :version "github-71ef635013760c31e451ece8a84272d5b01d7095"))
+("entzauberte-matrices" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "shamazmazum/entzauberte-matrices" :ref nil :branch nil :tag "v0.2")
+  :version "github-5b8441baabb40ecfab97f3c7cef999d2339be65d"))
+("codex" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "shamazmazum/codex" :ref nil :branch nil :tag nil)
+  :version "github-67a554ffb78cc6f050ffc4d38a97777ed836db7e"))
+("docparser" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "shamazmazum/docparser" :ref nil :branch nil :tag nil)
+  :version "github-93a327d9e1c990fc6ec13251ffae119f3c168053"))
+("fiveam" .
+ (:class qlot/source/ql:source-ql
+  :initargs (:%version :latest)
+  :version "ql-2024-10-12"))
