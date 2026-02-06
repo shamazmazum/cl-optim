@@ -73,19 +73,19 @@ SIMPLE-ERROR if they are too short."
                    (declare (type double-float x))
                    (expt (abs x) p)))))
 
-(sera:-> diag-*-matrix ((simple-array double-float (*))
-                        (simple-array double-float (* *)))
+(sera:-> xt-*-diag ((simple-array double-float (* *))
+                    (simple-array double-float (*)))
          (values (simple-array double-float (* *)) &optional))
-(defun diag-*-matrix (d m)
+(defun xt-*-diag (x d)
   (declare (optimize (speed 3)))
-  (assert (= (array-dimension m 0) (length d)))
-  (let ((result (make-array (array-dimensions m)
+  (assert (= (array-dimension x 0) (length d)))
+  (let ((result (make-array (list (array-dimension x 1)
+                                  (array-dimension x 0))
                             :element-type 'double-float)))
     (loop for i below (array-dimension result 0) do
       (loop for j below (array-dimension result 1) do
         (setf (aref result i j)
-              (* (aref m i j)
-                 (aref d i)))))
+              (* (aref x j i) (aref d j)))))
     result))
 
 ;; https://en.wikipedia.org/wiki/Iteratively_reweighted_least_squares
@@ -120,24 +120,20 @@ iteration."
   (let ((xs (lsqr-xs xs (length ys))))
     (labels ((%go (w β n)
                (declare (type alex:non-negative-fixnum n))
-               (let* ((%β (em:column
-                           (em:mult
-                            (em:mult
-                             (em:invert (em:mult xs (diag-*-matrix w xs) :ta t))
-                             xs :tb t)
-                            (em:vector->column
-                             (map '(vector double-float) #'* w ys)))
-                           0))
-                      (%w (map
-                           '(vector double-float)
-                           (lambda (x y)
-                             (expt (max 1d-4 (abs (- x y))) (- p 2)))
-                           ys (em:column (em:mult xs (em:vector->column %β)) 0))))
+               (let* ((xtw (xt-*-diag xs w))
+                      (%β (em:solve (em:@ xtw xs)
+                                    (em:@ xtw (em:vector->column-unsafe ys))))
+                      (βv (em:column %β 0))
+                      (w (map
+                          '(vector double-float)
+                          (lambda (x y)
+                            (expt (max 1d-4 (abs (- x y))) (- p 2)))
+                          ys (em:column (em:mult xs %β) 0))))
                  (if (or (= n (linear-irls-options-n opt))
                          (and (not (zerop n))
-                              (< (em:norm (map '(vector double-float) #'- β %β))
+                              (< (em:norm (map '(vector double-float) #'- β βv))
                                  (linear-irls-options-ε opt))))
-                     %β (%go %w %β (1+ n))))))
+                     βv (%go w βv (1+ n))))))
       (let ((β (%go (make-array (length ys)
                                 :element-type 'double-float
                                 :initial-element 1d0)
