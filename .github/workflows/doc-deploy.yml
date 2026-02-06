@@ -2,7 +2,7 @@ name: doc-deploy
 
 on:
   push:
-    branches: [master]
+    tags: [v*]
 
 jobs:
   doc:
