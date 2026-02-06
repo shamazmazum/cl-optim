@@ -132,7 +132,7 @@ CL-USER&gt; (polynomial:polynomial-gradient '(1 2 3)(cl-forward-diff:to-doubles 
   (:use #:cl)
   (:local-nicknames (#:diff #:cl-forward-diff))
   #.(cl-forward-diff:shadowing-import-math)
-  (:export #:rosenbrock))
+  (:export #:rosenbrock-gradient))
 (in-package :rosenbrock)
 
 (defun rosenbrock (xs)
@@ -145,7 +145,7 @@ CL-USER&gt; (polynomial:polynomial-gradient '(1 2 3)(cl-forward-diff:to-doubles 
   (diff:ad-multivariate #'rosenbrock x))
       </code></pre><p>
       Evaluate in the REPL:
-      </p><pre><code class="lisp">CL-USER&gt; (cl-optim:nag #'rosenbrock:rosenbrock
+      </p><pre><code class="lisp">CL-USER&gt; (cl-optim:nag #'rosenbrock:rosenbrock-gradient
                        (cl-forward-diff:to-doubles '(-1 1))
                        :η  1d-4
                        :ε  1d-5
@@ -155,13 +155,12 @@ CL-USER&gt; (polynomial:polynomial-gradient '(1 2 3)(cl-forward-diff:to-doubles 
       </code></pre><p>
       Here I overrided some default parameters <code>β1</code>, <code>ε</code> and <code>η</code>. For more
       information see <a id="api" href="api.html" data-node="api">API</a> section.</p><p>      The best algorithm is BFGS:
-      </p><pre><code class="lisp">      CL-USER&gt; (cl-optim:bfgs #'rosenbrock:rosenbrock #'rosenbrock:rosenbrock-gradient
-                       (cl-forward-diff:to-doubles '(-1 1)))
-#(2.000000000000671d0 4.000000000002626d0)
-#&lt;MAGICL:MATRIX/DOUBLE-FLOAT (2x2):
-  3192.251    -797.639
-  -797.639    199.428&gt;
-40
+      </p><pre><code class="lisp">CL-USER&gt; (cl-optim:bfgs #'rosenbrock:rosenbrock #'rosenbrock:rosenbrock-gradient
+                        (cl-forward-diff:to-doubles '(-1 1)))
+#(1.9999999999260059d0 3.999999999709496d0)
+#2A((3193.6903282808616d0 -797.9902028529028d0)
+    (-797.9902028529028d0 199.51390630514203d0))
+39
       </code></pre><p>
    </p><p>   </p><h1 id="algorithms-which-work-without-gradient">Algorithms which work without gradient</h1><p>      Currently there is only one algorithm in <code>cl-optim</code> which can optimize
       non-differentiable functions: simulated annealing. Let's minimize the

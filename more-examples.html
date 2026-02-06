@@ -90,13 +90,13 @@
 
 (defun my-system (u)
   (linear-system-cost
-   (linear-system:%make-array
+   (%make-array
     '((1 2 1 3)
       (2 1 1 1)
       (1 3 2 4)
       (1 5 1 1))
     '(4 4))
-   (linear-system:%make-array
+   (%make-array
     '(18 12 28 23)
     '(4))
    u))
@@ -104,20 +104,20 @@
 (defun my-system-grad (u)
   (diff:ad-multivariate #'my-system u))
       </code></pre><p>      Now evaluate the following code in the REPL:
-      </p><pre><code class="lisp">(cl-optim:bfgs/magicl
+      </p><pre><code class="lisp">(cl-optim:bfgs
  #'linear-system:my-system #'linear-system:my-system-grad
- (magicl:zeros '(4)))
+ (make-array 4 :element-type 'double-float :initial-element 0d0))
       </code></pre><p>      The answer is
-      </p><pre><code class="lisp">#&lt;MAGICL:VECTOR/DOUBLE-FLOAT (4):
-   1.000
-   3.000
-   5.000
-   2.000&gt;
-#&lt;MAGICL:MATRIX/DOUBLE-FLOAT (4x4):
-  14.000    24.000    12.000    20.000
-  24.000    77.993    28.000    48.002
-  12.000    28.000    14.000    26.000
-  20.000    48.002    26.000    53.998&gt;
+      </p><pre><code class="lisp">#(1.0000000233346444d0 2.999999992732429d0 5.000000042014617d0
+  1.9999999825454713d0)
+#2A((13.999970381376034d0 23.999695311150532d0 11.999923492443905d0
+     19.99990159192858d0)
+    (23.99969531115055d0 77.99323142393533d0 27.999698907361388d0
+     48.00153800492526d0)
+    (11.999923492443912d0 27.999698907361385d0 13.999789063628127d0
+     25.999520223690997d0)
+    (19.999901591928605d0 48.00153800492526d0 25.999520223691004d0
+     53.99814123449133d0))
 7
       </code></pre><p>
       The first value is the minimizer of <code>my-system</code>: \((1, 3, 5, 2)\). The
