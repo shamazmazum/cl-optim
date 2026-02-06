@@ -102,7 +102,7 @@ CL-USER> (cl-optim:nag
   (:use #:cl)
   (:local-nicknames (#:diff #:cl-forward-diff))
   #.(cl-forward-diff:shadowing-import-math)
-  (:export #:rosenbrock))
+  (:export #:rosenbrock-gradient))
 (in-package :rosenbrock)
 
 (defun rosenbrock (xs)
@@ -116,7 +116,7 @@ CL-USER> (cl-optim:nag
       @end(code)
       Evaluate in the REPL:
       @begin[lang=lisp](code)
-CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock
+CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock-gradient
                        (cl-forward-diff:to-doubles '(-1 1))
                        :η  1d-4
                        :ε  1d-5
@@ -129,13 +129,12 @@ CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock
 
       The best algorithm is BFGS:
       @begin[lang=lisp](code)
-      CL-USER> (cl-optim:bfgs #'rosenbrock:rosenbrock #'rosenbrock:rosenbrock-gradient
-                       (cl-forward-diff:to-doubles '(-1 1)))
-#(2.000000000000671d0 4.000000000002626d0)
-#<MAGICL:MATRIX/DOUBLE-FLOAT (2x2):
-  3192.251    -797.639
-  -797.639    199.428>
-40
+CL-USER> (cl-optim:bfgs #'rosenbrock:rosenbrock #'rosenbrock:rosenbrock-gradient
+                        (cl-forward-diff:to-doubles '(-1 1)))
+#(1.9999999999260059d0 3.999999999709496d0)
+#2A((3193.6903282808616d0 -797.9902028529028d0)
+    (-797.9902028529028d0 199.51390630514203d0))
+39
       @end(code)
    @end(section)
 
@@ -231,7 +230,6 @@ CL-USER> (cl-optim:linear-least-squares
    @u(Gradient-based algorithms with Hessian approximation)
    @cl:with-package[name="cl-optim"](
       @cl:doc(function bfgs)
-      @cl:doc(function bfgs/magicl)
       @cl:doc(defconstructor backtracking-options)
    )
    @u(Least squares fit)
@@ -328,13 +326,13 @@ CL-USER> (cl-optim:linear-least-squares
 
 (defun my-system (u)
   (linear-system-cost
-   (linear-system:%make-array
+   (%make-array
     '((1 2 1 3)
       (2 1 1 1)
       (1 3 2 4)
       (1 5 1 1))
     '(4 4))
-   (linear-system:%make-array
+   (%make-array
     '(18 12 28 23)
     '(4))
    u))
@@ -345,23 +343,23 @@ CL-USER> (cl-optim:linear-least-squares
 
       Now evaluate the following code in the REPL:
       @begin[lang=lisp](code)
-(cl-optim:bfgs/magicl
+(cl-optim:bfgs
  #'linear-system:my-system #'linear-system:my-system-grad
- (magicl:zeros '(4)))
+ (make-array 4 :element-type 'double-float :initial-element 0d0))
       @end(code)
 
       The answer is
       @begin[lang=lisp](code)
-#<MAGICL:VECTOR/DOUBLE-FLOAT (4):
-   1.000
-   3.000
-   5.000
-   2.000>
-#<MAGICL:MATRIX/DOUBLE-FLOAT (4x4):
-  14.000    24.000    12.000    20.000
-  24.000    77.993    28.000    48.002
-  12.000    28.000    14.000    26.000
-  20.000    48.002    26.000    53.998>
+#(1.0000000233346444d0 2.999999992732429d0 5.000000042014617d0
+  1.9999999825454713d0)
+#2A((13.999970381376034d0 23.999695311150532d0 11.999923492443905d0
+     19.99990159192858d0)
+    (23.99969531115055d0 77.99323142393533d0 27.999698907361388d0
+     48.00153800492526d0)
+    (11.999923492443912d0 27.999698907361385d0 13.999789063628127d0
+     25.999520223690997d0)
+    (19.999901591928605d0 48.00153800492526d0 25.999520223691004d0
+     53.99814123449133d0))
 7
       @end(code)
       The first value is the minimizer of @c(my-system): \((1, 3, 5, 2)\). The
