@@ -2,7 +2,7 @@ ql alexandria
 ql serapeum
 ql stateless-iterators
 github shamazmazum/cl-forward-diff :tag v0.6
-github shamazmazum/entzauberte-matrices :tag v0.2
 github shamazmazum/codex
 github shamazmazum/docparser
 ql fiveam
+github shamazmazum/entzauberte-matrices :tag v0.3

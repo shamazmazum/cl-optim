@@ -18,10 +18,6 @@
  (:class qlot/source/github:source-github
   :initargs (:repos "shamazmazum/cl-forward-diff" :ref nil :branch nil :tag "v0.6")
   :version "github-71ef635013760c31e451ece8a84272d5b01d7095"))
-("entzauberte-matrices" .
- (:class qlot/source/github:source-github
-  :initargs (:repos "shamazmazum/entzauberte-matrices" :ref nil :branch nil :tag "v0.2")
-  :version "github-5b8441baabb40ecfab97f3c7cef999d2339be65d"))
 ("codex" .
  (:class qlot/source/github:source-github
   :initargs (:repos "shamazmazum/codex" :ref nil :branch nil :tag nil)
@@ -34,3 +30,7 @@
  (:class qlot/source/ql:source-ql
   :initargs (:%version :latest)
   :version "ql-2024-10-12"))
+("entzauberte-matrices" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "shamazmazum/entzauberte-matrices" :ref nil :branch nil :tag "v0.3")
+  :version "github-33fa9324e6b9ea141eb2e6ad20087fa3a599df41"))
