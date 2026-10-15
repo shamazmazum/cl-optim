@@ -11,7 +11,10 @@
 
 (sera:-> make-initial-simplex ((vector double-float) double-float)
          (values list &optional))
-(defun make-initial-simplex (xs delta)
+(defun make-initial-simplex (xs Δ)
+  "Make initial simplex based on initial approximation point. @c(XS)
+is a vector of doubles which is an initial guess for a problem. @c(Δ)
+is a size of the simplex."
   (let ((dim (length xs)))
     (loop for i below (1+ dim)
           collect (let ((point (make-array dim
@@ -19,7 +22,7 @@
                     (loop for j below dim do
                       (setf (aref point j)
                             (+ (aref xs j)
-                               (if (= i j) delta 0))))
+                               (if (= i j) Δ 0))))
                     point))))
 
 (sera:-> sort-datapoints (list)
@@ -100,6 +103,13 @@
                       (:xstol          double-float))
          (values (vector double-float) double-float alex:positive-fixnum &optional))
 (defun nelder-mead (f simplex &key (max-iterations 10000) (ftol 1d-6) (xstol 1d-6))
+  "Find the minimum of a function @c(F) of \\(n\\) arguments using
+Nelder-Mead algorithm. @c(SIMPLEX) is an initial simplex in form of a
+list which contains \\(n+1\\) points in \\(n\\)-dimensional space. This
+function stops when either a number of iterations exceeds
+@c(MAX-ITERATIONS), function variance between iterations becomes no
+more than @c(FTOL) or argument variation (Chebyshev distance) becomes
+no more than @c(XSTOL)."
   (declare (optimize (speed 3)))
   (labels ((%%go (datapoints)
              (let* ((datapoints (sort-datapoints datapoints))

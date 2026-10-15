@@ -61,12 +61,11 @@
 
       You can evaluate a polynomial, let it be \(f(x) = 1 + 2x + 3x^2\) at the
       point \(x\) (let \(x = 2\)) and its first derivative \(f'(x) = 2 + 6x\)
-      like this (@c(to-doubles) is a helper which generates a simple array of
-      double floats from a sequence of reals):
+      like this:
       @begin[lang=lisp](code)
-CL-USER> (polynomial:polynomial '(1 2 3) (cl-forward-diff:to-doubles '(2)))
+CL-USER> (polynomial:polynomial '(1 2 3) #a(1 double-float . (2d0)))
 17.0d0
-CL-USER> (polynomial:polynomial-gradient '(1 2 3) (cl-forward-diff:to-doubles '(2)))
+CL-USER> (polynomial:polynomial-gradient '(1 2 3) #a(1 double-float . (2d0)))
 #(14.0d0)
       @end(code)
 
@@ -76,7 +75,7 @@ CL-USER> (polynomial:polynomial-gradient '(1 2 3) (cl-forward-diff:to-doubles '(
       @begin[lang=lisp](code)
 CL-USER> (cl-optim:gradient-descent
  (lambda (x) (polynomial:polynomial-gradient '(1 2 3) x))
- (cl-forward-diff:to-doubles '(1)))
+ #a(1 double-float . (1d0)))
 #(-0.3331670485897465d0)
 2992
       @end(code)
@@ -90,7 +89,7 @@ CL-USER> (cl-optim:gradient-descent
       @begin[lang=lisp](code)
 CL-USER> (cl-optim:nag
  (lambda (x) (polynomial:polynomial-gradient '(1 2 3) x))
- (cl-forward-diff:to-doubles '(1)))
+ #a(1 double-float . (1d0)))
 #(-0.3331680985581683d0)
 136
       @end(code)
@@ -102,7 +101,7 @@ CL-USER> (cl-optim:nag
   (:use #:cl)
   (:local-nicknames (#:diff #:cl-forward-diff))
   #.(cl-forward-diff:shadowing-import-math)
-  (:export #:rosenbrock-gradient))
+  (:export #:rosenbrock #:rosenbrock-gradient))
 (in-package :rosenbrock)
 
 (defun rosenbrock (xs)
@@ -117,7 +116,7 @@ CL-USER> (cl-optim:nag
       Evaluate in the REPL:
       @begin[lang=lisp](code)
 CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock-gradient
-                       (cl-forward-diff:to-doubles '(-1 1))
+                       #a(2 double-float . (1d0 -1d0))
                        :η  1d-4
                        :ε  1d-5
                        :β1 0.99d0)
@@ -130,7 +129,7 @@ CL-USER> (cl-optim:nag #'rosenbrock:rosenbrock-gradient
       The best algorithm is BFGS:
       @begin[lang=lisp](code)
 CL-USER> (cl-optim:bfgs #'rosenbrock:rosenbrock #'rosenbrock:rosenbrock-gradient
-                        (cl-forward-diff:to-doubles '(-1 1)))
+                        #a(2 double-float . (1d0 -1d0)))
 #(1.9999999999260059d0 3.999999999709496d0)
 #2A((3193.6903282808616d0 -797.9902028529028d0)
     (-797.9902028529028d0 199.51390630514203d0))
@@ -141,9 +140,8 @@ CL-USER> (cl-optim:bfgs #'rosenbrock:rosenbrock #'rosenbrock:rosenbrock-gradient
    @begin(section)
       @title(Algorithms which work without gradient)
 
-      Currently there is only one algorithm in @c(cl-optim) which can optimize
-      non-differentiable functions: simulated annealing. Let's minimize the
-      following function:
+      Algorithms in @c(cl-optim) which can work without gradient are simulated
+      annealing and Nelder-Mead. Here is an example of simulated annealing:
 
       @begin[lang=lisp](code)
 (defun noise-sinc (x)
@@ -163,7 +161,7 @@ CL-USER> (cl-optim:bfgs #'rosenbrock:rosenbrock #'rosenbrock:rosenbrock-gradient
 CL-USER> (cl-optim:simulated-annealing
           (alexandria:compose #'noise-sinc
                               (alexandria:rcurry #'aref 0))
-          (cl-forward-diff:to-doubles '(15)))
+          #a(1 double-float . (15d0)))
 #(4.0656966038580755d0)
 #S(CL-OPTIM:SIMULATED-ANNEALING-SUMMARY
    :TEMPERATURE 9.99734336301017d-5
@@ -184,8 +182,8 @@ CL-USER> (cl-optim:simulated-annealing
    (y's). You can approximate that function with a linear function like so:
 @begin[lang=lisp](code)
 CL-USER> (cl-optim:linear-least-squares
-          (cl-forward-diff:to-doubles '(1 2 3))
-          (cl-forward-diff:to-doubles '(1 2 4)))
+          #a(3 double-float . (1d0 2d0 3d0))
+          #a(3 double-float . (1d0 2d0 4d0)))
 #(0.6428571428571426d0 0.4999999999999998d0)
 0.07142857142857147d0
 @end(code)
@@ -195,8 +193,8 @@ CL-USER> (cl-optim:linear-least-squares
    a number of samples is 2, the second value is zero:
 @begin[lang=lisp](code)
 CL-USER> (cl-optim:linear-least-squares
-          (cl-forward-diff:to-doubles '(1 3))
-          (cl-forward-diff:to-doubles '(1 5)))
+          #a(2 double-float . (1d0 3d0))
+          #a(2 double-float . (1d0 5d0)))
 #(0.5d0 0.5d0)
 0.0d0
 @end(code)
@@ -206,9 +204,9 @@ CL-USER> (cl-optim:linear-least-squares
    Multivariate problem can also be solved:
 @begin[lang=lisp](code)
 CL-USER> (cl-optim:linear-least-squares
-          (cl-forward-diff:to-doubles '(1 2 6))
-          (cl-forward-diff:to-doubles '(1 2 2))
-          (cl-forward-diff:to-doubles '(1 2 1)))
+          #a(3 double-float . (1d0 2d0 6d0))
+          #a(3 double-float . (1d0 2d0 2d0))
+          #a(3 double-float . (1d0 2d0 1d0)))
 #(4.9999999999999964d0 -3.999999999999991d0 -1.0658141036401503d-14)
 1.072850831100576d-28
 @end(code)
@@ -243,6 +241,8 @@ CL-USER> (cl-optim:linear-least-squares
       @cl:doc(function simulated-annealing)
       @cl:doc(function exponential-cooldown)
       @cl:doc(function normal-neighborhood)
+      @cl:doc(function nelder-mead)
+      @cl:doc(function make-initial-simplex)
    )
    @u(Parameters)
    @cl:with-package[name="cl-optim"](
