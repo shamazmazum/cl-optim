@@ -121,6 +121,16 @@ temperature by a parameter <code>0 &lt; λ &lt; 1</code></div></div>
       <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">normal-neighborhood</code><code class="codex-lambda-list">(σ)</code><div class="codex-docstring">Create a neighborhood function which calculates a new candidate by
 adding a vector of independent random values with distribution
 <code>N(0, σ)</code> to the current candidate.</div></div>
+      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">nelder-mead</code><code class="codex-lambda-list">(f simplex &amp;key (max-iterations 10000) (ftol 1.0d-6) (xstol 1.0d-6))</code><div class="codex-docstring">Find the minimum of a function <code>F</code> of \(n\) arguments using
+Nelder-Mead algorithm. <code>SIMPLEX</code> is an initial simplex in form of a
+list which contains \(n+1\) points in \(n\)-dimensional space. This
+function stops when either a number of iterations exceeds
+<code>MAX-ITERATIONS</code>, function variance between iterations becomes no
+more than <code>FTOL</code> or argument variation (Chebyshev distance) becomes
+no more than <code>XSTOL</code>.</div></div>
+      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">make-initial-simplex</code><code class="codex-lambda-list">(xs δ)</code><div class="codex-docstring">Make initial simplex based on initial approximation point. <code>XS</code>
+is a vector of doubles which is an initial guess for a problem. <code>Δ</code>
+is a size of the simplex.</div></div>
    
    <u>Parameters</u>
    
