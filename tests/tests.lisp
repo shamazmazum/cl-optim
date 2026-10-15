@@ -89,6 +89,14 @@
       (let ((solution (bfgs #'rosenbrock #'rosenbrock-grad initial)))
         (is-true (array-approx-p solution expected :atol 1d-5))))))
 
+(test nelder-mead
+  (let ((expected #a(3 double-float . (1d0 1d0 1d0))))
+    (for-all ((initial (random-vector 3 10d0)))
+      (let* ((initial-simplex (make-initial-simplex initial 5d-1))
+             (solution (nelder-mead #'rosenbrock initial-simplex
+                                    :ftol 0d0 :xstol 0d0 :max-iterations 1000)))
+        (is-true (array-approx-p solution expected :atol 1d-8))))))
+
 (defun llsq-diff (a b xs ys p)
   (reduce
    #'+ (map '(vector double-float)

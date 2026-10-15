@@ -19,10 +19,12 @@
    #:linear-irls
    #:*default-linear-irls-options*
 
-   ;; Heuristics
+   ;; Heuristics without gradient
    #:simulated-annealing
    #:exponential-cooldown
    #:normal-neighborhood
+   #:nelder-mead
+   #:make-initial-simplex
 
    ;; Parameters
    #:*η*

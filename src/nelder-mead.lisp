@@ -94,9 +94,12 @@
         maximize (abs (- x1 x2))
         double-float))
 
-(sera:-> nelder-mead (doubles->double list alex:positive-fixnum double-float double-float)
+(sera:-> nelder-mead (doubles->double list &key
+                      (:max-iterations alex:positive-fixnum)
+                      (:ftol           double-float)
+                      (:xstol          double-float))
          (values (vector double-float) double-float alex:positive-fixnum &optional))
-(defun nelder-mead (f simplex max-iterations ftol xstol)
+(defun nelder-mead (f simplex &key (max-iterations 10000) (ftol 1d-6) (xstol 1d-6))
   (declare (optimize (speed 3)))
   (labels ((%%go (datapoints)
              (let* ((datapoints (sort-datapoints datapoints))
