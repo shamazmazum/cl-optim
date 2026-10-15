@@ -12,6 +12,7 @@
                (:file "matrices")
                (:file "bfgs")
                (:file "annealing")
+               (:file "nelder-mead")
                (:file "least-squares"))
   :depends-on (:serapeum :alexandria :entzauberte-matrices)
   :in-order-to ((test-op (load-op "cl-optim/tests")))
