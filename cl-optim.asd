@@ -18,7 +18,7 @@
   :in-order-to ((test-op (load-op "cl-optim/tests")))
   :perform (test-op (op system)
                     (declare (ignore op system))
-                    (uiop:symbol-call :cl-optim-tests  '#:run-tests)))
+                    (uiop:symbol-call :cl-optim/tests  '#:run-tests)))
 
 (defsystem :cl-optim/tests
   :name :cl-optim/tests
@@ -30,7 +30,11 @@
   :components ((:file "packages")
                (:file "functions")
                (:file "tests"))
-  :depends-on (:fiveam :cl-optim :stateless-iterators :cl-forward-diff))
+  :depends-on (:fiveam
+               :cl-optim
+               :stateless-iterators
+               :cl-forward-diff
+               :approx))
 
 ;; For qlot
 (defsystem cl-optim/docs

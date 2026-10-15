@@ -1,4 +1,4 @@
-(in-package :cl-optim-tests)
+(in-package :cl-optim/tests)
 
 (def-suite optim :description "Test optimization")
 
@@ -7,92 +7,70 @@
     (explain! status)
     (results-status status)))
 
-(declaim (inline random-vector))
-(defun random-vector (n)
-  (make-array n
+(defun random-vector (n b)
+  (gen-buffer :length (lambda () n)
               :element-type 'double-float
-              :initial-contents (loop repeat n collect (random 1d0))))
-
-(declaim (inline sub-scalar))
-(defun sub-scalar (a s)
-  (map '(vector double-float)
-       (lambda (x) (- x s))
-       a))
-
-(defun closep (result expected &optional (tolerance 5d-3))
-  (every
-   (lambda (x y) (< (abs (- x y)) tolerance))
-   result expected))
+              :elements (gen-float :bound b
+                                   :type 'double-float)))
 
 (in-suite optim)
 
 (test opt-paraboloid
-  (mapcar
-   (lambda (optimizer)
-     (loop repeat 10 do
-          (multiple-value-bind (x iter)
-              (funcall optimizer #'paraboloid-grad
-                       (to-doubles
-                        (list (random 10d0)
-                              (random 10d0))))
-            (is (< iter *max-iterations*))
-            (is (closep x '(0 0))))))
-   (list #'gradient-descent
-         #'gradient-descent-momentum
-         #'nag
-         (lambda (fn x)
-           (adam fn x :η 1d-2)))))
+  (for-all ((initial (random-vector 2 10d0)))
+    (mapcar
+     (lambda (optimizer)
+       (multiple-value-bind (x iter)
+           (funcall optimizer #'paraboloid-grad initial)
+         (is (< iter *max-iterations*))
+         (is (array-approx-p x #a(2 double-float . (0d0 0d0)) :atol 5d-3 :rtol 0d0))))
+     (list #'gradient-descent
+           #'gradient-descent-momentum
+           #'nag
+           (lambda (fn x)
+             (adam fn x :η 1d-2))))))
 
 (test opt-booth
-  (mapcar
-   (lambda (optimizer)
-     (loop repeat 10 do
-          (multiple-value-bind (x iter)
-              (funcall optimizer #'booth-grad
-                       (to-doubles
-                        (list (- (random 10d0) 5d0)
-                              (- (random 10d0) 5d0))))
-            (is (< iter *max-iterations*))
-            (is (closep x '(1 3))))))
-   (list #'gradient-descent-momentum
-         #'nag
-         (lambda (fn x)
-           (adam fn x :η 1d-2)))))
+  (for-all ((initial (random-vector 2 5d0)))
+    (mapcar
+     (lambda (optimizer)
+       (multiple-value-bind (x iter)
+           (funcall optimizer #'booth-grad initial)
+         (is (< iter *max-iterations*))
+         (is (array-approx-p x #a(2 double-float . (1d0 3d0)) :atol 1d-3))))
+     (list #'gradient-descent-momentum
+           #'nag
+           (lambda (fn x)
+             (adam fn x :η 1d-2))))))
 
 (test opt-rosenbrock
-  (mapcar
-   (lambda (optimizer)
-     (loop repeat 10 do
-          (multiple-value-bind (x iter)
-              (funcall optimizer
-                       #'rosenbrock-grad
-                       (to-doubles
-                        (list (- (random 4d0) 2d0)
-                              (- (random 4d0) 2d0))))
-            (is (< iter 100000))
-            (is (closep x '(1 1))))))
-   (list
-    (lambda (fn x)
-      (nag fn x
-           :η  1d-4
-           :β1 0.99d0
-           :ε  1d-4
-           :max-iterations 20000))
-    (lambda (fn x)
-      (adam fn x
-            :η 1d-2
-            :ε 1d-4
-            :max-iterations 20000)))))
-
-(test opt-hills
-  (loop repeat 10 do
+  (for-all ((initial (random-vector 2 2d0)))
+    (mapcar
+     (lambda (optimizer)
        (multiple-value-bind (x iter)
-           (nag #'hills-grad
-                (to-doubles (list (+ (random 4d0) 11d0)))
-                :η  1d-3
-                :β1 0.95d0)
-         (is (< iter *max-iterations*))
-         (is (closep x '(3.219))))))
+           (funcall optimizer #'rosenbrock-grad initial)
+         (is (< iter 100000))
+         (is (array-approx-p x #a(2 double-float . (1d0 1d0)) :atol 1d-3))))
+     (list
+      (lambda (fn x)
+        (nag fn x
+             :η  1d-4
+             :β1 0.99d0
+             :ε  1d-4
+             :max-iterations 20000))
+      (lambda (fn x)
+        (adam fn x
+              :η 1d-2
+              :ε 1d-4
+              :max-iterations 20000))))))
+
+(test opt-beale
+  (for-all ((initial (random-vector 2 5d-1)))
+    (multiple-value-bind (x iter)
+        (nag #'beale-grad initial :η 1d-2 :ε 1d-6 :β1 0.85d0)
+      (is (array-approx-p x #a(2 double-float . (3d0 5d-1)) :atol 1d-5))
+      (is (< iter *max-iterations*)))
+    (let ((x (bfgs #'beale #'beale-grad initial)))
+      (is (array-approx-p x #a(2 double-float . (3d0 5d-1)) :atol 1d-5)))))
 
 (test opt-noise-sinc
   (is
@@ -101,19 +79,15 @@
         (loop repeat 10 collect
              (let ((opt (simulated-annealing
                          (alexandria:compose #'noise-sinc (alexandria:rcurry #'aref 0))
-                         (to-doubles '(10d0)))))
-               (closep opt '(4d0) 0.15d0))))
+                         #a(1 double-float . (10d0)))))
+               (array-approx-p opt #a(1 double-float . (4d0)) :atol 0.15d0))))
        2)))
 
 (test bfgs
-  (loop with expected = (make-array 3
-                                    :element-type 'double-float
-                                    :initial-element 1d0)
-        repeat 1000
-        for vector = (sub-scalar (em:scale (random-vector 3) 40d0) 20d0) do
-        (is (< (em:norm
-                (em:sub (bfgs #'rosenbrock #'rosenbrock-grad vector) expected))
-               1d-4))))
+  (let ((expected #a(3 double-float . (1d0 1d0 1d0))))
+    (for-all ((initial (random-vector 3 10d0)))
+      (let ((solution (bfgs #'rosenbrock #'rosenbrock-grad initial)))
+        (is-true (array-approx-p solution expected :atol 1d-5))))))
 
 (defun llsq-diff (a b xs ys p)
   (reduce
@@ -123,93 +97,95 @@
             xs ys)))
 
 (test linear-least-squares-exact
-  (loop repeat 500 do
-        (is (< (nth-value
-                1 (linear-least-squares
-                   (to-doubles (loop repeat 2 collect (random 1d0)))
-                   (to-doubles (loop repeat 2 collect (random 1d0)))))
-               1d-10)))
-  (loop repeat 500 do
-        (is (< (nth-value
-                1 (linear-least-squares
-                   (to-doubles (loop repeat 3 collect (random 1d0)))
-                   (to-doubles (loop repeat 3 collect (random 1d0)))
-                   (to-doubles (loop repeat 3 collect (random 1d0)))))
-               1d-10)))
-  (loop repeat 500 do
-        (is (< (nth-value
-                1 (linear-least-squares
-                   (to-doubles (loop repeat 4 collect (random 1d0)))
-                   (to-doubles (loop repeat 4 collect (random 1d0)))
-                   (to-doubles (loop repeat 4 collect (random 1d0)))
-                   (to-doubles (loop repeat 4 collect (random 1d0)))))
-               1d-10))))
+  (for-all ((xs (random-vector 2 1d0))
+            (ys (random-vector 2 1d0)))
+    (is (approxp (nth-value
+                  1 (linear-least-squares ys xs))
+                 0d0 :atol 1d-10)))
+  (for-all ((xs1 (random-vector 3 1d0))
+            (xs2 (random-vector 3 1d0))
+            (ys  (random-vector 3 1d0)))
+    (is (approxp (nth-value
+                  1 (linear-least-squares ys xs1 xs2))
+                 0d0 :atol 1d-10)))
+  (for-all ((xs1 (random-vector 4 1d0))
+            (xs2 (random-vector 4 1d0))
+            (xs3 (random-vector 4 1d0))
+            (ys  (random-vector 4 1d0)))
+    (is (approxp (nth-value
+                  1 (linear-least-squares ys xs1 xs2 xs3))
+                 0d0 :atol 1d-10))))
 
 (test linear-least-square-univariate
-  (loop repeat 1000
-        for a  = (random 100d0)
-        for b  = (random 100d0)
-        for n  = (+ (random 100) 2)
-        for xs = (to-doubles (loop repeat n collect (random 100d0)))
-        for ys = (map '(vector double-float)
-                      (lambda (x noise) (+ (* x a) b noise))
-                      xs (loop repeat n collect (random 1d0)))
-        for βs = (linear-least-squares ys xs)
-        for β0 = (aref βs 0)
-        for β1 = (aref βs 1)
-
-        for diff-min = (llsq-diff β0 β1 xs ys 2)
-        for diff     = (llsq-diff (+ β0 (random 1d0))
-                                  (+ β1 (random 1d0))
-                                  xs ys 2)
-        do (is (< diff-min diff))))
+  (for-all* ((a (gen-float :bound 100d0 :type 'double-float))
+             (b (gen-float :bound 100d0 :type 'double-float))
+             (n (gen-integer :min 2 :max 100))
+             (xs (random-vector n 100d0))
+             (noise (random-vector n 1d0))
+             (Δβ0 (gen-float :bound 1d0 :type 'double-float))
+             (Δβ1 (gen-float :bound 1d0 :type 'double-float)))
+    (let* ((ys (map '(vector double-float)
+                    (lambda (x noise) (+ (* x a) b noise))
+                    xs noise))
+           (βs (linear-least-squares ys xs))
+           (β0 (aref βs 0))
+           (β1 (aref βs 1))
+           (diff-min (llsq-diff β0 β1 xs ys 2))
+           (diff     (llsq-diff (+ β0 Δβ0)
+                                (+ β1 Δβ1)
+                                xs ys 2)))
+      (is (< diff-min diff)))))
 
 (test linear-irls-exact
-  (loop repeat 500 do
-        (is (< (nth-value
-                1 (linear-irls
-                   (1+ (random 2d0))
-                   *default-linear-irls-options*
-                   (to-doubles (loop repeat 2 collect (random 1d0)))
-                   (to-doubles (loop repeat 2 collect (random 1d0)))))
-               1d-6)))
-  (loop repeat 500 do
-        (is (< (nth-value
-                1 (linear-irls
-                   (1+ (random 2d0))
-                   *default-linear-irls-options*
-                   (to-doubles (loop repeat 3 collect (random 1d0)))
-                   (to-doubles (loop repeat 3 collect (random 1d0)))
-                   (to-doubles (loop repeat 3 collect (random 1d0)))))
-               1d-6)))
-  (loop repeat 500 do
-        (is (< (nth-value
-                1 (linear-irls
-                   (1+ (random 2d0))
-                   *default-linear-irls-options*
-                   (to-doubles (loop repeat 4 collect (random 1d0)))
-                   (to-doubles (loop repeat 4 collect (random 1d0)))
-                   (to-doubles (loop repeat 4 collect (random 1d0)))
-                   (to-doubles (loop repeat 4 collect (random 1d0)))))
-               1d-6))))
+  (for-all ((xs (random-vector 2 1d0))
+            (ys (random-vector 2 1d0))
+            (p  (gen-float :bound 1d0 :type 'double-float)))
+    (is (approxp (nth-value
+                  1 (linear-irls
+                     (+ p 2)
+                     *default-linear-irls-options*
+                     ys xs))
+                 0d0 :atol 1d-10)))
+  (for-all ((xs1 (random-vector 3 1d0))
+            (xs2 (random-vector 3 1d0))
+            (ys  (random-vector 3 1d0))
+            (p  (gen-float :bound 1d0 :type 'double-float)))
+    (is (approxp (nth-value
+                  1 (linear-irls
+                     (+ p 2)
+                     *default-linear-irls-options*
+                     ys xs1 xs2))
+                 0d0 :atol 1d-10)))
+  (for-all ((xs1 (random-vector 4 1d0))
+            (xs2 (random-vector 4 1d0))
+            (xs3 (random-vector 4 1d0))
+            (ys  (random-vector 4 1d0))
+            (p  (gen-float :bound 1d0 :type 'double-float)))
+    (is (approxp (nth-value
+                    1 (linear-irls
+                       (+ p 2)
+                       *default-linear-irls-options*
+                       ys xs1 xs2 xs3))
+                   0d0 :atol 1d-10))))
 
 (test linear-irls-univariate
-  (loop repeat 10000
-        for a  = (+ (random 10d0) 3d-1)
-        for b  = (random 10d0)
-        for p  = (+ (random 2d0) 1)
-        for n  = (+ (random 200) 2)
-        for xs = (to-doubles (loop repeat n collect (random 100d0)))
-        for ys = (map '(vector double-float)
-                      (lambda (x noise) (+ (* x a) b noise))
-                      xs (loop repeat n collect (random 1d0)))
-
-        for βs = (linear-irls p *default-linear-irls-options* ys xs)
-        for β0 = (aref βs 0)
-        for β1 = (aref βs 1)
-
-        for diff-min = (llsq-diff β0 β1 xs ys p)
-        for diff     = (llsq-diff (+ β0 (random 1d0) -5d-1)
-                                  (+ β1 (random 1d0) -5d-1)
-                                  xs ys p)
-        do (is (> diff diff-min))))
+  (for-all* ((a (gen-float :bound 100d0 :type 'double-float))
+             (b (gen-float :bound 100d0 :type 'double-float))
+             (p (gen-float :bound 1d0 :type 'double-float))
+             (n (gen-integer :min 2 :max 100))
+             (xs (random-vector n 100d0))
+             (noise (random-vector n 1d0))
+             (Δβ0 (gen-float :bound 1d0 :type 'double-float))
+             (Δβ1 (gen-float :bound 1d0 :type 'double-float)))
+    (let* ((ys (map '(vector double-float)
+                    (lambda (x noise) (+ (* x a) b noise))
+                    xs noise))
+           (p (+ p 2))
+           (βs (linear-irls p *default-linear-irls-options* ys xs))
+           (β0 (aref βs 0))
+           (β1 (aref βs 1))
+           (diff-min (llsq-diff β0 β1 xs ys p))
+           (diff     (llsq-diff (+ β0 Δβ0)
+                                (+ β1 Δβ1)
+                                xs ys p)))
+      (is (< diff-min diff)))))

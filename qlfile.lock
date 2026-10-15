@@ -34,3 +34,7 @@
  (:class qlot/source/github:source-github
   :initargs (:repos "shamazmazum/entzauberte-matrices" :ref nil :branch nil :tag "v0.3")
   :version "github-33fa9324e6b9ea141eb2e6ad20087fa3a599df41"))
+("approx" .
+ (:class qlot/source/github:source-github
+  :initargs (:repos "shamazmazum/approx" :ref nil :branch nil :tag nil)
+  :version "github-fc8eee714d39c9a1cf69139cd9232b67b3c992e7"))

@@ -1,5 +1,5 @@
 ;; Differentiable functions
-(in-package :cl-optim-tests-fn-diff)
+(in-package :cl-optim/tests/fn-diff)
 
 (defun rosenbrock (xs)
   (si:foldl #'+ 0d0
@@ -30,16 +30,18 @@
 (defun booth-grad (xs)
   (diff:ad-multivariate #'booth xs))
 
-(defun hills (xs)
-  (let ((x (aref xs 0)))
-    (+ (expt (- x 4) 2)
-       (* 10 (expt (sin x) 2)))))
+(defun beale (xs)
+  (let ((x (aref xs 0))
+        (y (aref xs 1)))
+    (+ (expt (+ 1.5 (- x) (* x y)) 2)
+       (expt (+ 2.25 (- x) (* x (expt y 2))) 2)
+       (expt (+ 2.625 (- x) (* x (expt y 3))) 2))))
 
-(defun hills-grad (xs)
-  (diff:ad-multivariate #'hills xs))
+(defun beale-grad (xs)
+  (diff:ad-multivariate #'beale xs))
 
 ;; Not differentiable
-(in-package :cl-optim-tests-fn)
+(in-package :cl-optim/tests/fn)
 
 (defun noise-sinc (x)
   (let ((x-shift (- x 4)))
