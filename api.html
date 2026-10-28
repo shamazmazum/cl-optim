@@ -128,9 +128,11 @@ function stops when either a number of iterations exceeds
 <code>MAX-ITERATIONS</code>, function variance between iterations becomes no
 more than <code>FTOL</code> or argument variation (Chebyshev distance) becomes
 no more than <code>XSTOL</code>.</div></div>
-      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">make-initial-simplex</code><code class="codex-lambda-list">(xs δ)</code><div class="codex-docstring">Make initial simplex based on initial approximation point. <code>XS</code>
-is a vector of doubles which is an initial guess for a problem. <code>Δ</code>
-is a size of the simplex.</div></div>
+      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">make-initial-simplex</code><code class="codex-lambda-list">(xs δ)</code><div class="codex-docstring">Make an initial simplex based on initial approximation
+point. <code>XS</code> is a vector of doubles which is an initial guess for a
+problem. <code>Δ</code> is a vector of the same dimensionality as <code>XS</code> which
+describes size of the simplex.</div></div>
+      <div class="codex-doc-node codex-operator codex-function"><code class="codex-name">clone</code><code class="codex-lambda-list">(n x)</code><div class="codex-docstring">Make a vector of <code>N</code> elements with values <code>X</code>.</div></div>
    
    <u>Parameters</u>
    
