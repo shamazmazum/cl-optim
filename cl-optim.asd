@@ -1,6 +1,6 @@
 (defsystem :cl-optim
   :name :cl-optim
-  :version "0.5"
+  :version "0.5.1"
   :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
   :description "Optimization of differentiable functions in CL"
   :licence "2-clause BSD"

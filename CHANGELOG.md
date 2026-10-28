@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 0.5.1
+
+* Improvement `make-initial-simplex` takes a vector for its second argument `Δ`
+  providing more flexible control of initial simplex.
+* Improvement `clone` function added to create a vector of `N` elements filled
+  with a value `X`.
+
 ## Version 0.5
 
 * Add Nelder-Mead optimizer
