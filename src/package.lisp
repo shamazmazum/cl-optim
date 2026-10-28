@@ -25,6 +25,7 @@
    #:normal-neighborhood
    #:nelder-mead
    #:make-initial-simplex
+   #:clone
 
    ;; Parameters
    #:*η*

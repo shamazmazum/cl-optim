@@ -243,6 +243,7 @@ CL-USER> (cl-optim:linear-least-squares
       @cl:doc(function normal-neighborhood)
       @cl:doc(function nelder-mead)
       @cl:doc(function make-initial-simplex)
+      @cl:doc(function clone)
    )
    @u(Parameters)
    @cl:with-package[name="cl-optim"](

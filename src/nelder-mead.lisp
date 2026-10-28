@@ -9,12 +9,20 @@
   (xs  (vector double-float))
   (val double-float))
 
-(sera:-> make-initial-simplex ((vector double-float) double-float)
+(sera:-> clone (alex:positive-fixnum double-float)
+         (values (vector double-float) &optional))
+(defun clone (n x)
+  "Make a vector of @c(N) elements with values @c(X)."
+  (make-array n :element-type 'double-float :initial-element x))
+
+(sera:-> make-initial-simplex ((vector double-float)
+                               (vector double-float))
          (values list &optional))
 (defun make-initial-simplex (xs Δ)
-  "Make initial simplex based on initial approximation point. @c(XS)
-is a vector of doubles which is an initial guess for a problem. @c(Δ)
-is a size of the simplex."
+  "Make an initial simplex based on initial approximation
+point. @c(XS) is a vector of doubles which is an initial guess for a
+problem. @c(Δ) is a vector of the same dimensionality as @c(XS) which
+describes size of the simplex."
   (let ((dim (length xs)))
     (loop for i below (1+ dim)
           collect (let ((point (make-array dim
@@ -22,7 +30,7 @@ is a size of the simplex."
                     (loop for j below dim do
                       (setf (aref point j)
                             (+ (aref xs j)
-                               (if (= i j) Δ 0))))
+                               (if (= i j) (aref Δ j) 0))))
                     point))))
 
 (sera:-> sort-datapoints (list)

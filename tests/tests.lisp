@@ -92,7 +92,7 @@
 (test nelder-mead
   (let ((expected #a(3 double-float . (1d0 1d0 1d0))))
     (for-all ((initial (random-vector 3 10d0)))
-      (let* ((initial-simplex (make-initial-simplex initial 5d-1))
+      (let* ((initial-simplex (make-initial-simplex initial (clone 3 5d-1)))
              (solution (nelder-mead #'rosenbrock initial-simplex
                                     :ftol 0d0 :xstol 0d0 :max-iterations 1000)))
         (is-true (array-approx-p solution expected :atol 1d-8))))))
